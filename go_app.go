@@ -15,12 +15,17 @@ type App struct {
 	mux    *chi.Mux
 }
 
-func New() *App {
+type Config struct {
+	Name     string
+	LogLevel logger.Level
+}
+
+func New(cfg Config) *App {
 	app := &App{
 		ctx: context.Background(),
 		Logger: logger.New(logger.Config{
-			Name:  "sample-app",
-			Level: logger.LEVEL_INFO,
+			Name:  cfg.Name,
+			Level: cfg.LogLevel,
 		}),
 		mux: chi.NewRouter(),
 	}
