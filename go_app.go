@@ -32,6 +32,7 @@ func New(cfg Config) *App {
 
 	app.mux.Use(newAppContextMdw(app))
 	app.mux.Use(newRequestIdMdw())
+	app.mux.Use(newXPoweredByMdw())
 
 	return app
 }

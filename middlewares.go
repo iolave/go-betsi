@@ -9,6 +9,24 @@ import (
 
 type mdwHandler func(http.Handler) http.Handler
 
+// newXPoweredByMdw returns a chi middleware that sets
+// the X-Powered-By header to a value that identifies
+// this app follows the pingolabscl standard and thus,
+// errors can be parsed and handled.
+func newXPoweredByMdw() mdwHandler {
+	return func(next http.Handler) http.Handler {
+
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+
+			w.Header().Set("x-powered-by", "pingolabs.cl")
+			next.ServeHTTP(w, r.WithContext(ctx))
+		}
+
+		return http.HandlerFunc(fn)
+	}
+}
+
 func newRequestIdMdw() mdwHandler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
