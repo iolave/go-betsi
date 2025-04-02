@@ -2,6 +2,7 @@ package goapp
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"reflect"
 	"time"
@@ -78,4 +79,19 @@ func newHealthcheckHandler() http.HandlerFunc {
 		w.Write(b)
 	})
 
+}
+
+func newNotFoundHandler(app *App) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		err := errors.NewNotFoundError(
+			"resource not found",
+			fmt.Sprintf("path %s not found", r.URL.Path),
+		)
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(err.Status)
+		b, _ := json.Marshal(err)
+		w.Write(b)
+		app.Logger.Error(ctx, "resource_not_found", err)
+	})
 }

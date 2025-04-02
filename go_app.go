@@ -2,6 +2,7 @@ package goapp
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 
@@ -39,6 +40,8 @@ func New(cfg Config) (app *App, err error) {
 	app.mux.Use(newRequestIdMdw())
 	app.mux.Use(newXPoweredByMdw())
 	app.mux.Get("/healthcheck", newHealthcheckHandler())
+	app.mux.Get("/healthcheck/", newHealthcheckHandler())
+	app.mux.NotFound(newNotFoundHandler(app))
 
 	return app, nil
 }
