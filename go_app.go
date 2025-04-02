@@ -15,11 +15,13 @@ type App struct {
 	ctx    context.Context
 	Logger logger.Logger
 	mux    *chi.Mux
+	port   int
 }
 
 type Config struct {
 	Name     string
 	LogLevel logger.Level
+	Port     int
 }
 
 func New(cfg Config) (app *App, err error) {
@@ -27,8 +29,14 @@ func New(cfg Config) (app *App, err error) {
 		return nil, errors.New("app name is empty")
 	}
 
+	port := 3000
+	if cfg.Port != 0 {
+		port = cfg.Port
+	}
+
 	app = &App{
-		ctx: context.Background(),
+		port: port,
+		ctx:  context.Background(),
 		Logger: logger.New(logger.Config{
 			Name:  cfg.Name,
 			Level: cfg.LogLevel,
@@ -47,32 +55,54 @@ func New(cfg Config) (app *App, err error) {
 }
 
 func (app *App) Start() {
-	app.Logger.Info(app.ctx, "app_starting")
+	app.Logger.InfoWithData(app.ctx, "app_starting", map[string]any{
+		"port":       app.port,
+		"tlsEnabled": false,
+	})
 
-	listener, err := net.Listen("tcp", ":3000")
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", app.port))
 	if err != nil {
-		app.Logger.Fatal(app.ctx, "app_crashed", err)
+		app.Logger.FatalWithData(app.ctx, "app_crashed", err, map[string]any{
+			"port":       app.port,
+			"tlsEnabled": false,
+		})
 	}
 
-	app.Logger.Info(app.ctx, "app_started")
+	app.Logger.InfoWithData(app.ctx, "app_started", map[string]any{
+		"port": app.port,
+	})
 	err = http.Serve(listener, app.mux)
 	if err != nil {
-		app.Logger.Fatal(app.ctx, "app_crashed", err)
+		app.Logger.FatalWithData(app.ctx, "app_crashed", err, map[string]any{
+			"port":       app.port,
+			"tlsEnabled": false,
+		})
 	}
 }
 
 func (app *App) StartTLS(certFile, keyFile string) {
-	app.Logger.Info(app.ctx, "app_starting")
+	app.Logger.InfoWithData(app.ctx, "app_starting", map[string]any{
+		"port":       app.port,
+		"tlsEnabled": true,
+	})
 
-	listener, err := net.Listen("tcp", ":3000")
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", app.port))
 	if err != nil {
-		app.Logger.Fatal(app.ctx, "app_crashed", err)
+		app.Logger.FatalWithData(app.ctx, "app_crashed", err, map[string]any{
+			"port":       app.port,
+			"tlsEnabled": true,
+		})
 	}
 
-	app.Logger.Error(app.ctx, "app_started", err)
+	app.Logger.InfoWithData(app.ctx, "app_started", map[string]any{
+		"port": app.port,
+	})
 	err = http.ServeTLS(listener, app.mux, certFile, keyFile)
 	if err != nil {
-		app.Logger.Fatal(app.ctx, "app_crashed", err)
+		app.Logger.FatalWithData(app.ctx, "app_crashed", err, map[string]any{
+			"port":       app.port,
+			"tlsEnabled": true,
+		})
 	}
 }
 
