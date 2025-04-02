@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"time"
 
+	"github.com/pingolabscl/go-app/errors"
 	"github.com/pingolabscl/go-app/trace"
 )
 
@@ -62,7 +64,7 @@ func (l Logger) Error(ctx context.Context, msg string, err error) {
 		return
 	}
 
-	fmt.Println(l.buildLogEntry(ctx, level, msg, err))
+	fmt.Println(l.buildLogEntry(ctx, level, msg, wrapError(err)))
 }
 
 // Fatal exits with code 1
@@ -72,7 +74,7 @@ func (l Logger) Fatal(ctx context.Context, msg string, err error) {
 		return
 	}
 
-	fmt.Println(l.buildLogEntry(ctx, level, msg, err))
+	fmt.Println(l.buildLogEntry(ctx, level, msg, wrapError(err)))
 	os.Exit(1)
 }
 
@@ -108,4 +110,16 @@ func (l Logger) buildLogEntry(ctx context.Context, level Level, msg string, err 
 
 	b, _ := json.Marshal(entry)
 	return string(b)
+}
+
+func wrapError(err error) error {
+	if err == nil {
+		return errors.New("empty error")
+	}
+
+	if "*errors.errorString" != reflect.TypeOf(err).String() {
+		return err
+	}
+
+	return errors.New(err.Error())
 }

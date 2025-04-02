@@ -2,11 +2,11 @@ package goapp
 
 import (
 	"context"
-	"errors"
 	"net"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/pingolabscl/go-app/errors"
 	"github.com/pingolabscl/go-app/logger"
 )
 
@@ -50,7 +50,7 @@ func (app *App) Start() {
 		app.Logger.Fatal(app.ctx, "app_crashed", err)
 	}
 
-	app.Logger.Error(app.ctx, "app_started", err)
+	app.Logger.Info(app.ctx, "app_started")
 	err = http.Serve(listener, app.mux)
 	if err != nil {
 		app.Logger.Fatal(app.ctx, "app_crashed", err)
