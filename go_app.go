@@ -2,6 +2,7 @@ package goapp
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 
@@ -20,8 +21,12 @@ type Config struct {
 	LogLevel logger.Level
 }
 
-func New(cfg Config) *App {
-	app := &App{
+func New(cfg Config) (app *App, err error) {
+	if cfg.Name == "" {
+		return nil, errors.New("app name is empty")
+	}
+
+	app = &App{
 		ctx: context.Background(),
 		Logger: logger.New(logger.Config{
 			Name:  cfg.Name,
@@ -34,7 +39,7 @@ func New(cfg Config) *App {
 	app.mux.Use(newRequestIdMdw())
 	app.mux.Use(newXPoweredByMdw())
 
-	return app
+	return app, nil
 }
 
 func (app *App) Start() {
