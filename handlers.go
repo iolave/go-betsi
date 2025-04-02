@@ -32,7 +32,9 @@ func (req *AppRequest) SendError(err error) {
 	req.writer.WriteHeader(err.(*errors.HTTP).Status)
 	b, _ := json.Marshal(err.(*errors.HTTP))
 	req.writer.Write(b)
-	req.app.Logger.Error(ctx, "handler_failed", err)
+	req.app.Logger.ErrorWithData(ctx, "handler_failed", err, map[string]any{
+		"path": req.Request.URL.Path,
+	})
 }
 
 // SendJSON sends an OK json response. If the value
@@ -52,7 +54,9 @@ func (req *AppRequest) SendJSON(result any) {
 	req.writer.Header().Set("content-type", "application/json")
 	req.writer.WriteHeader(http.StatusOK)
 	req.writer.Write(b)
-	req.app.Logger.Info(ctx, "handler_success")
+	req.app.Logger.InfoWithData(ctx, "handler_success", map[string]any{
+		"path": req.Request.URL.Path,
+	})
 }
 
 type Handler func(AppRequest)
@@ -61,7 +65,9 @@ func newHandler(handler http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		app := GetFromContext(ctx)
-		app.Logger.Info(ctx, "handler_started")
+		app.Logger.InfoWithData(ctx, "handler_started", map[string]any{
+			"path": r.URL.Path,
+		})
 		handler.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -92,6 +98,8 @@ func newNotFoundHandler(app *App) http.HandlerFunc {
 		w.WriteHeader(err.Status)
 		b, _ := json.Marshal(err)
 		w.Write(b)
-		app.Logger.Error(ctx, "resource_not_found", err)
+		app.Logger.ErrorWithData(ctx, "resource_not_found", err, map[string]any{
+			"path": r.URL.Path,
+		})
 	})
 }

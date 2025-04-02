@@ -37,7 +37,16 @@ func (l Logger) Debug(ctx context.Context, msg string) {
 		return
 	}
 
-	fmt.Println(l.buildLogEntry(ctx, level, msg, nil))
+	fmt.Println(l.buildLogEntry(ctx, level, msg, map[string]any{}, nil))
+}
+
+func (l Logger) DebugWithData(ctx context.Context, msg string, data map[string]any) {
+	level := LEVEL_DEBUG
+	if !l.shouldPrint(level) {
+		return
+	}
+
+	fmt.Println(l.buildLogEntry(ctx, level, msg, data, nil))
 }
 
 func (l Logger) Info(ctx context.Context, msg string) {
@@ -46,7 +55,16 @@ func (l Logger) Info(ctx context.Context, msg string) {
 		return
 	}
 
-	fmt.Println(l.buildLogEntry(ctx, level, msg, nil))
+	fmt.Println(l.buildLogEntry(ctx, level, msg, map[string]any{}, nil))
+}
+
+func (l Logger) InfoWithData(ctx context.Context, msg string, data map[string]any) {
+	level := LEVEL_INFO
+	if !l.shouldPrint(level) {
+		return
+	}
+
+	fmt.Println(l.buildLogEntry(ctx, level, msg, data, nil))
 }
 
 func (l Logger) Warn(ctx context.Context, msg string) {
@@ -55,7 +73,16 @@ func (l Logger) Warn(ctx context.Context, msg string) {
 		return
 	}
 
-	fmt.Println(l.buildLogEntry(ctx, level, msg, nil))
+	fmt.Println(l.buildLogEntry(ctx, level, msg, map[string]any{}, nil))
+}
+
+func (l Logger) WarnWithData(ctx context.Context, msg string, data map[string]any) {
+	level := LEVEL_WARN
+	if !l.shouldPrint(level) {
+		return
+	}
+
+	fmt.Println(l.buildLogEntry(ctx, level, msg, data, nil))
 }
 
 func (l Logger) Error(ctx context.Context, msg string, err error) {
@@ -64,7 +91,16 @@ func (l Logger) Error(ctx context.Context, msg string, err error) {
 		return
 	}
 
-	fmt.Println(l.buildLogEntry(ctx, level, msg, wrapError(err)))
+	fmt.Println(l.buildLogEntry(ctx, level, msg, map[string]any{}, wrapError(err)))
+}
+
+func (l Logger) ErrorWithData(ctx context.Context, msg string, err error, data map[string]any) {
+	level := LEVEL_ERROR
+	if !l.shouldPrint(level) {
+		return
+	}
+
+	fmt.Println(l.buildLogEntry(ctx, level, msg, data, wrapError(err)))
 }
 
 // Fatal exits with code 1
@@ -74,7 +110,18 @@ func (l Logger) Fatal(ctx context.Context, msg string, err error) {
 		return
 	}
 
-	fmt.Println(l.buildLogEntry(ctx, level, msg, wrapError(err)))
+	fmt.Println(l.buildLogEntry(ctx, level, msg, map[string]any{}, wrapError(err)))
+	os.Exit(1)
+}
+
+// FatalWithData exits with code 1
+func (l Logger) FatalWithData(ctx context.Context, msg string, err error, data map[string]any) {
+	level := LEVEL_FATAL
+	if !l.shouldPrint(level) {
+		return
+	}
+
+	fmt.Println(l.buildLogEntry(ctx, level, msg, data, wrapError(err)))
 	os.Exit(1)
 }
 
@@ -90,21 +137,29 @@ func (l Logger) shouldPrint(level Level) bool {
 }
 
 type entry struct {
-	Timestamp int64       `json:"timestamp"`
-	Level     Level       `json:"level"`
-	Name      string      `json:"name"`
-	Trace     trace.Trace `json:"trace"`
-	Error     error       `json:"error,omitempty"`
-	Msg       string      `json:"msg"`
+	Timestamp int64          `json:"timestamp"`
+	Level     Level          `json:"level"`
+	Name      string         `json:"name"`
+	Trace     trace.Trace    `json:"trace"`
+	Error     error          `json:"error,omitempty"`
+	Info      map[string]any `json:"info"`
+	Msg       string         `json:"msg"`
 }
 
-func (l Logger) buildLogEntry(ctx context.Context, level Level, msg string, err error) string {
+func (l Logger) buildLogEntry(
+	ctx context.Context,
+	level Level,
+	msg string,
+	info map[string]any,
+	err error,
+) string {
 	entry := entry{
 		Timestamp: time.Now().Unix(),
 		Level:     level,
 		Name:      l.Name,
-		Error:     err,
 		Trace:     trace.Get(ctx),
+		Error:     err,
+		Info:      info,
 		Msg:       msg,
 	}
 
