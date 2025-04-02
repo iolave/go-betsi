@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/pingolabscl/go-app/errors"
 )
@@ -62,4 +63,19 @@ func newHandler(handler http.HandlerFunc) http.HandlerFunc {
 		app.Logger.Info(ctx, "handler_started")
 		handler.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func newHealthcheckHandler() http.HandlerFunc {
+	startTime := time.Now()
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		b, _ := json.Marshal(map[string]any{
+			"uptime": time.Since(startTime).
+				Truncate(time.Second).
+				Seconds(),
+		})
+		w.Write(b)
+	})
+
 }
