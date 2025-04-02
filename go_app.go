@@ -57,6 +57,21 @@ func (app *App) Start() {
 	}
 }
 
+func (app *App) StartTLS(certFile, keyFile string) {
+	app.Logger.Info(app.ctx, "app_starting")
+
+	listener, err := net.Listen("tcp", ":3000")
+	if err != nil {
+		app.Logger.Fatal(app.ctx, "app_crashed", err)
+	}
+
+	app.Logger.Error(app.ctx, "app_started", err)
+	err = http.ServeTLS(listener, app.mux, certFile, keyFile)
+	if err != nil {
+		app.Logger.Fatal(app.ctx, "app_crashed", err)
+	}
+}
+
 func (app *App) Get(path string, handler Handler) {
 	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
