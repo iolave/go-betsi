@@ -77,6 +77,9 @@ func (app *App) StartTLS(certFile, keyFile string) {
 }
 
 func (app *App) Get(path string, handler Handler) {
+	if len(path) > 0 && path[len(path)-1] == '/' {
+		path = path[0 : len(path)-1]
+	}
 	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
 			app:     app,
@@ -85,9 +88,13 @@ func (app *App) Get(path string, handler Handler) {
 		})
 	})
 	app.mux.Get(path, wrappedHandler)
+	app.mux.Get(fmt.Sprintf("%s/", path), wrappedHandler)
 }
 
 func (app *App) Post(path string, handler Handler) {
+	if len(path) > 0 && path[len(path)-1] == '/' {
+		path = path[0 : len(path)-1]
+	}
 	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
 			app:     app,
@@ -96,9 +103,13 @@ func (app *App) Post(path string, handler Handler) {
 		})
 	})
 	app.mux.Post(path, wrappedHandler)
+	app.mux.Post(fmt.Sprintf("%s/", path), wrappedHandler)
 }
 
 func (app *App) Put(path string, handler Handler) {
+	if len(path) > 0 && path[len(path)-1] == '/' {
+		path = path[0 : len(path)-1]
+	}
 	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
 			app:     app,
@@ -107,9 +118,13 @@ func (app *App) Put(path string, handler Handler) {
 		})
 	})
 	app.mux.Put(path, wrappedHandler)
+	app.mux.Put(fmt.Sprintf("%s/", path), wrappedHandler)
 }
 
 func (app *App) Delete(path string, handler Handler) {
+	if len(path) > 0 && path[len(path)-1] == '/' {
+		path = path[0 : len(path)-1]
+	}
 	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
 			app:     app,
@@ -118,9 +133,13 @@ func (app *App) Delete(path string, handler Handler) {
 		})
 	})
 	app.mux.Delete(path, wrappedHandler)
+	app.mux.Delete(fmt.Sprintf("%s/", path), wrappedHandler)
 }
 
 func (app *App) Patch(path string, handler Handler) {
+	if len(path) > 0 && path[len(path)-1] == '/' {
+		path = path[0 : len(path)-1]
+	}
 	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
 			app:     app,
@@ -129,4 +148,5 @@ func (app *App) Patch(path string, handler Handler) {
 		})
 	})
 	app.mux.Patch(path, wrappedHandler)
+	app.mux.Patch(fmt.Sprintf("%s/", path), wrappedHandler)
 }
