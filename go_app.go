@@ -12,10 +12,11 @@ import (
 )
 
 type App struct {
-	ctx    context.Context
-	Logger logger.Logger
-	mux    *chi.Mux
-	port   int
+	ctx     context.Context
+	Logger  logger.Logger
+	mux     *chi.Mux
+	port    int
+	clients map[string]client
 }
 
 type Config struct {
@@ -41,7 +42,8 @@ func New(cfg Config) (app *App, err error) {
 			Name:  cfg.Name,
 			Level: cfg.LogLevel,
 		}),
-		mux: chi.NewRouter(),
+		mux:     chi.NewRouter(),
+		clients: make(map[string]client),
 	}
 
 	app.mux.Use(newAppContextMdw(app))
