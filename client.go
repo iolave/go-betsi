@@ -3,6 +3,7 @@ package goapp
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +13,18 @@ import (
 	"github.com/pingolabscl/go-app/errors"
 	"github.com/pingolabscl/go-app/trace"
 )
+
+func newHTTPClient(insecureSkipVerify bool) *http.Client {
+	transport := http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: insecureSkipVerify,
+		},
+	}
+
+	return &http.Client{
+		Transport: &transport,
+	}
+}
 
 type client struct {
 	Name       string `json:"name"`
@@ -83,7 +96,7 @@ func (app *App) RequestJSON(ctx context.Context, r JSONRequest) error {
 		req.Header.Set(k, v)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	res, err := app.httpClient.Do(req)
 	if err != nil {
 		return errors.NewInternalServerError("failed to send request", err.Error())
 	}

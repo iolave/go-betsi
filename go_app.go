@@ -12,17 +12,19 @@ import (
 )
 
 type App struct {
-	ctx     context.Context
-	Logger  logger.Logger
-	mux     *chi.Mux
-	port    int
-	clients map[string]client
+	ctx        context.Context
+	Logger     logger.Logger
+	mux        *chi.Mux
+	port       int
+	clients    map[string]client
+	httpClient *http.Client
 }
 
 type Config struct {
-	Name     string
-	LogLevel logger.Level
-	Port     int
+	Name               string
+	LogLevel           logger.Level
+	Port               int
+	InsecureSkipVerify bool
 }
 
 func New(cfg Config) (app *App, err error) {
@@ -42,8 +44,9 @@ func New(cfg Config) (app *App, err error) {
 			Name:  cfg.Name,
 			Level: cfg.LogLevel,
 		}),
-		mux:     chi.NewRouter(),
-		clients: make(map[string]client),
+		mux:        chi.NewRouter(),
+		clients:    make(map[string]client),
+		httpClient: newHTTPClient(cfg.InsecureSkipVerify),
 	}
 
 	app.mux.Use(newAppContextMdw(app))
