@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"reflect"
 	"time"
@@ -25,6 +26,19 @@ func (ar *AppRequest) Context() context.Context {
 	}
 
 	return ar.Request.Context()
+}
+
+// ReadJSONBody unmarshals a request json body into v.
+func (ar *AppRequest) ReadJSONBody(v any) error {
+	b, err := io.ReadAll(ar.Request.Body)
+	if err != nil {
+		return errors.NewBadRequestError("failed to read request body", err.Error())
+	}
+	if err := json.Unmarshal(b, v); err != nil {
+		return errors.NewBadRequestError("failed to parse json request body", err.Error())
+	}
+
+	return nil
 }
 
 // SendError sends an error response, following the
