@@ -67,10 +67,23 @@ func (ar *AppRequest) SendError(err error) {
 	})
 }
 
-// SendJSON sends an OK json response. If the value
-// param failed to be marshaled, an error will be sent.
+// SendJSON sends an OK http response with json content.
+// If go-playground/validator validation requirements are
+// not met, an internal server error will be sent instead.
+// if the result param failed to be marshaled, an internal
+// server error will be sent instead.
 func (ar *AppRequest) SendJSON(result any) {
 	ctx := ar.Context()
+
+	if err := ar.app.validator.Struct(result); err != nil {
+		ar.SendError(errors.NewInternalServerError(
+			"unable to send response, response didn't passed validation",
+			err.Error(),
+		))
+
+		return
+	}
+
 	b, err := json.Marshal(result)
 	if err != nil {
 		ar.SendError(errors.NewInternalServerError(
