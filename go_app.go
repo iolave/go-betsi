@@ -54,6 +54,7 @@ func New(cfg Config) (app *App, err error) {
 	app.mux.Use(newXPoweredByMdw())
 	app.mux.Get("/healthcheck", newHealthcheckHandler())
 	app.mux.Get("/healthcheck/", newHealthcheckHandler())
+	app.mux.MethodNotAllowed(newMethodNotAllowedHandler(app))
 	app.mux.NotFound(newNotFoundHandler(app))
 
 	return app, nil

@@ -43,6 +43,15 @@ func NewNotFoundError(msg, cause string) *HTTP {
 	}
 }
 
+func NewMethodNotAllowedError(msg, cause string) *HTTP {
+	return &HTTP{
+		Status:  http.StatusMethodNotAllowed,
+		Name:    "method_not_allowed_error",
+		Message: msg,
+		Cause:   cause,
+	}
+}
+
 func NewTimeoutError(msg, cause string) *HTTP {
 	return &HTTP{
 		Status:  http.StatusGatewayTimeout,

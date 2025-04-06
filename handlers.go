@@ -128,3 +128,21 @@ func newNotFoundHandler(app *App) http.HandlerFunc {
 		})
 	})
 }
+
+func newMethodNotAllowedHandler(app *App) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		err := errors.NewMethodNotAllowedError(
+			"method not allowed",
+			fmt.Sprintf("method %s not allowed", r.Method),
+		)
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(err.Status)
+		b, _ := json.Marshal(err)
+		w.Write(b)
+		app.Logger.ErrorWithData(ctx, "method_not_allowed", err, map[string]any{
+			"path":   r.URL.Path,
+			"method": r.Method,
+		})
+	})
+}
