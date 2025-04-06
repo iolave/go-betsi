@@ -29,13 +29,18 @@ func (ar *AppRequest) Context() context.Context {
 }
 
 // ReadJSONBody unmarshals a request json body into v.
+// It also does struct validation using go-playground/validator
+// rules.
 func (ar *AppRequest) ReadJSONBody(v any) error {
 	b, err := io.ReadAll(ar.Request.Body)
 	if err != nil {
-		return errors.NewBadRequestError("failed to read request body", err.Error())
+		return errors.NewInternalServerError("failed to read request body", err.Error())
 	}
 	if err := json.Unmarshal(b, v); err != nil {
-		return errors.NewBadRequestError("failed to parse json request body", err.Error())
+		return errors.NewBadRequestError("invalid json content", err.Error())
+	}
+	if err := ar.app.validator.Struct(v); err != nil {
+		return errors.NewBadRequestError("validation error", err.Error())
 	}
 
 	return nil

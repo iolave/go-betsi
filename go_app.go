@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 	"github.com/pingolabscl/go-app/errors"
 	"github.com/pingolabscl/go-app/logger"
 )
@@ -18,6 +19,7 @@ type App struct {
 	port       int
 	clients    map[string]client
 	httpClient *http.Client
+	validator  *validator.Validate
 }
 
 type Config struct {
@@ -47,6 +49,7 @@ func New(cfg Config) (app *App, err error) {
 		mux:        chi.NewRouter(),
 		clients:    make(map[string]client),
 		httpClient: newHTTPClient(cfg.InsecureSkipVerify),
+		validator:  validator.New(validator.WithRequiredStructEnabled()),
 	}
 
 	app.mux.Use(newAppContextMdw(app))
