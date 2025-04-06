@@ -1,6 +1,7 @@
 package goapp
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,10 +17,20 @@ type AppRequest struct {
 	writer  http.ResponseWriter
 }
 
+// Context returns the context within the http request.
+// Is the same as ar.Request.Context().
+func (ar *AppRequest) Context() context.Context {
+	if ar.Request == nil {
+		return nil
+	}
+
+	return ar.Request.Context()
+}
+
 // SendError sends an error response, following the
 // errors.HTTP structure.
-func (req *AppRequest) SendError(err error) {
-	ctx := req.Request.Context()
+func (ar *AppRequest) SendError(err error) {
+	ctx := ar.Context()
 	if err == nil {
 		err = errors.NewInternalServerError("missing error", "unknown cause")
 	}
@@ -28,22 +39,22 @@ func (req *AppRequest) SendError(err error) {
 		err = errors.NewInternalServerError("internal error", err.Error())
 	}
 
-	req.writer.Header().Set("content-type", "application/json")
-	req.writer.WriteHeader(err.(*errors.HTTP).Status)
+	ar.writer.Header().Set("content-type", "application/json")
+	ar.writer.WriteHeader(err.(*errors.HTTP).Status)
 	b, _ := json.Marshal(err.(*errors.HTTP))
-	req.writer.Write(b)
-	req.app.Logger.ErrorWithData(ctx, "handler_failed", err, map[string]any{
-		"path": req.Request.URL.Path,
+	ar.writer.Write(b)
+	ar.app.Logger.ErrorWithData(ctx, "handler_failed", err, map[string]any{
+		"path": ar.Request.URL.Path,
 	})
 }
 
 // SendJSON sends an OK json response. If the value
 // param failed to be marshaled, an error will be sent.
-func (req *AppRequest) SendJSON(result any) {
-	ctx := req.Request.Context()
+func (ar *AppRequest) SendJSON(result any) {
+	ctx := ar.Context()
 	b, err := json.Marshal(result)
 	if err != nil {
-		req.SendError(errors.NewInternalServerError(
+		ar.SendError(errors.NewInternalServerError(
 			"failed to serialize result",
 			"result might contain invalid json content",
 		))
@@ -51,11 +62,11 @@ func (req *AppRequest) SendJSON(result any) {
 		return
 	}
 
-	req.writer.Header().Set("content-type", "application/json")
-	req.writer.WriteHeader(http.StatusOK)
-	req.writer.Write(b)
-	req.app.Logger.InfoWithData(ctx, "handler_success", map[string]any{
-		"path": req.Request.URL.Path,
+	ar.writer.Header().Set("content-type", "application/json")
+	ar.writer.WriteHeader(http.StatusOK)
+	ar.writer.Write(b)
+	ar.app.Logger.InfoWithData(ctx, "handler_success", map[string]any{
+		"path": ar.Request.URL.Path,
 	})
 }
 
