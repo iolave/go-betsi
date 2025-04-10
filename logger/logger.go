@@ -10,6 +10,7 @@ import (
 
 	"github.com/pingolabscl/go-app/errors"
 	"github.com/pingolabscl/go-app/trace"
+	"golang.org/x/mod/semver"
 )
 
 type Config struct {
@@ -19,15 +20,20 @@ type Config struct {
 
 type Logger struct {
 	Config
+	version string
 }
 
 func New(cfg Config) Logger {
 	if cfg.Level == "" {
 		cfg.Level = LEVEL_INFO
 	}
-
+	version := os.Getenv("VERSION")
+	if !semver.IsValid(version) {
+		version = fmt.Sprintf("%.7s", version)
+	}
 	return Logger{
-		Config: cfg,
+		Config:  cfg,
+		version: version,
 	}
 }
 
@@ -140,6 +146,7 @@ type entry struct {
 	Timestamp int64          `json:"timestamp"`
 	Level     Level          `json:"level"`
 	Name      string         `json:"name"`
+	Version   string         `json:"version"`
 	Trace     trace.Trace    `json:"trace"`
 	Error     error          `json:"error,omitempty"`
 	Info      map[string]any `json:"info"`
@@ -157,6 +164,7 @@ func (l Logger) buildLogEntry(
 		Timestamp: time.Now().Unix(),
 		Level:     level,
 		Name:      l.Name,
+		Version:   l.version,
 		Trace:     trace.Get(ctx),
 		Error:     err,
 		Info:      info,
