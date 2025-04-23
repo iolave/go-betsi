@@ -67,11 +67,18 @@ func (ar *AppRequest) SendError(err error) {
 	})
 }
 
-// SendJSON sends an OK http response with json content.
-// If go-playground/validator validation requirements are
-// not met, an internal server error will be sent instead.
-// if the result param failed to be marshaled, an internal
-// server error will be sent instead.
+// SendJSON sends an OK http response with json content. Make
+// sure the result param is a struct.
+//
+//   - If go-playground/validator validation requirements are
+//     not met, an internal server error will be sent instead.
+//
+//   - if the result param failed to be marshaled, an internal
+//     server error will be sent instead.
+//
+//   - If the result param is a map, go-playground/validator
+//     validation requirements are not met, and therefore an
+//     internal server error will be sent instead.
 func (ar *AppRequest) SendJSON(result any) {
 	ctx := ar.Context()
 

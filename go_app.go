@@ -8,18 +8,22 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"github.com/hashicorp/vault-client-go"
+	"github.com/hashicorp/vault-client-go/schema"
 	"github.com/pingolabscl/go-app/errors"
 	"github.com/pingolabscl/go-app/logger"
 )
 
 type App struct {
-	ctx        context.Context
-	Logger     logger.Logger
-	mux        *chi.Mux
-	port       int
-	clients    map[string]client
-	httpClient *http.Client
-	validator  *validator.Validate
+	ctx         context.Context
+	Logger      logger.Logger
+	mux         *chi.Mux
+	port        int
+	clients     map[string]client
+	httpClient  *http.Client
+	validator   *validator.Validate
+	vault       *vault.Client
+	vaultConfig VaultConfig
 }
 
 type Config struct {
@@ -27,9 +31,21 @@ type Config struct {
 	LogLevel           logger.Level
 	Port               int
 	InsecureSkipVerify bool
+	Vault              VaultConfig
 }
 
 func New(cfg Config) (app *App, err error) {
+	ctx := context.Background()
+
+	vaultConfig := determineVaultConfig(cfg.Vault)
+	var vaultClient *vault.Client
+	if vaultConfig.Addr != "" {
+		vaultClient, err = vault.New(vault.WithAddress(vaultConfig.Addr))
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if cfg.Name == "" {
 		return nil, errors.New("app name is empty")
 	}
@@ -40,16 +56,18 @@ func New(cfg Config) (app *App, err error) {
 	}
 
 	app = &App{
+		ctx:  ctx,
 		port: port,
-		ctx:  context.Background(),
 		Logger: logger.New(logger.Config{
 			Name:  cfg.Name,
 			Level: cfg.LogLevel,
 		}),
-		mux:        chi.NewRouter(),
-		clients:    make(map[string]client),
-		httpClient: newHTTPClient(cfg.InsecureSkipVerify),
-		validator:  validator.New(validator.WithRequiredStructEnabled()),
+		mux:         chi.NewRouter(),
+		clients:     make(map[string]client),
+		httpClient:  newHTTPClient(cfg.InsecureSkipVerify),
+		validator:   validator.New(validator.WithRequiredStructEnabled()),
+		vault:       vaultClient,
+		vaultConfig: cfg.Vault,
 	}
 
 	app.mux.Use(newAppContextMdw(app))
@@ -68,6 +86,29 @@ func (app *App) Start() {
 		"port":       app.port,
 		"tlsEnabled": false,
 	})
+
+	if app.vault != nil {
+		loginRes, err := app.vault.Auth.UserpassLogin(
+			app.ctx,
+			app.vaultConfig.Username,
+			schema.UserpassLoginRequest{
+				Password: app.vaultConfig.Password,
+			},
+		)
+		if err != nil {
+			app.Logger.FatalWithData(app.ctx, "app_crashed", err, map[string]any{
+				"port":       app.port,
+				"tlsEnabled": false,
+			})
+		}
+		if err := app.vault.SetToken(loginRes.Auth.ClientToken); err != nil {
+			app.Logger.FatalWithData(app.ctx, "app_crashed", err, map[string]any{
+				"port":       app.port,
+				"tlsEnabled": false,
+			})
+		}
+		go app.renewVaultToken(loginRes.Auth)
+	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", app.port))
 	if err != nil {
