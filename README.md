@@ -14,8 +14,7 @@ A simple web framework for Go.
 ## Environment Variables
 
 - `VAULT_ADDR`: Vault address (format: `scheme://host:port`).
-- `VAULT_USERNAME`: Vault username.
-- `VAULT_PASSWORD`: Vault password.
+- `VAULT_TOKEN`: Vault token.
 
 ## Getting Started
 
@@ -56,7 +55,6 @@ func main() {
     }
 
     app.Get("/hello", func(ar goapp.AppRequest) {
-        
         app.Logger.InfoWithData(ar.Context(), "hello", map[string]any{
             "name": "world",
         })

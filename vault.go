@@ -1,7 +1,6 @@
 package goapp
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,67 +12,68 @@ import (
 )
 
 type VaultConfig struct {
-	Addr     string
-	Username string
-	Password string
+	Addr  string
+	Token string
 }
 
 // determineVaultConfig determines the vault config from the
 // environment variables. In no environment variables are
 // found, the default config will be returned.
+//   - VAULT_ADDR: vault address
+//   - VAULT_TOKEN: vault token
 func determineVaultConfig(config VaultConfig) VaultConfig {
 	envAddr := os.Getenv("VAULT_ADDR")
-	envUsername := os.Getenv("VAULT_USERNAME")
-	envPassword := os.Getenv("VAULT_PASSWORD")
+	envToken := os.Getenv("VAULT_TOKEN")
 	if envAddr == "" {
 		return config
 	}
-	if envUsername == "" {
+	if envToken == "" {
 		return config
 	}
-	if envPassword == "" {
-		return config
-	}
-
 	return VaultConfig{
-		Addr:     envAddr,
-		Username: envUsername,
-		Password: envPassword,
+		Addr:  envAddr,
+		Token: envToken,
 	}
 }
 
-func (app *App) renewVaultToken(auth *vault.ResponseAuth) {
+func (app *App) renewVaultToken() {
+	base := "vault_token_renewal"
 	if app.vault == nil {
-		return
+		app.Logger.Fatal(
+			app.ctx,
+			fmt.Sprintf("%s_error", base),
+			errors.New("vault is not configured"),
+		)
 	}
 
 	for {
-		if !auth.Renewable {
-			app.Logger.Error(
+		res, err := app.vault.Auth.TokenRenewSelf(app.ctx, schema.TokenRenewSelfRequest{
+			Increment: "60m",
+		})
+		if err != nil {
+			app.Logger.Error(app.ctx, fmt.Sprintf("%s_error", base), errors.New(err.Error()))
+			duration := time.Minute * 1
+			app.Logger.DebugWithData(
 				app.ctx,
-				"vault_token_renewal_error",
-				errors.New("vault token is not renewable"),
+				fmt.Sprintf("%s_sleeping", base),
+				map[string]any{
+					"secs": duration.Seconds(),
+				},
 			)
+			time.Sleep(duration)
 			continue
 		}
 
-		secs := time.Duration(float64(auth.LeaseDuration)*0.66) * time.Second
-		time.Sleep(secs)
-		if _, err := app.vault.Auth.TokenRenewSelf(context.Background(), schema.TokenRenewSelfRequest{
-			Increment: fmt.Sprintf("%d", auth.LeaseDuration),
-		}); err != nil {
-			app.Logger.Error(
-				app.ctx,
-				"vault_token_renewal_error",
-				errors.New(err.Error()),
-			)
-			continue
-		}
-
-		app.Logger.Info(
+		app.Logger.Info(app.ctx, fmt.Sprintf("%s_success", base))
+		duration := time.Duration(float64(res.Auth.LeaseDuration)*0.6) * time.Second
+		app.Logger.DebugWithData(
 			app.ctx,
-			"vault_token_renewed",
+			fmt.Sprintf("%s_sleeping", base),
+			map[string]any{
+				"secs": duration.Seconds(),
+			},
 		)
+		time.Sleep(duration)
 	}
 }
 
@@ -99,5 +99,4 @@ func (app *App) GetVaultSecret(secretPath string, result any) error {
 
 	json.Unmarshal(b, result)
 	return nil
-
 }

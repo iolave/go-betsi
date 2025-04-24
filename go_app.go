@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/vault-client-go"
-	"github.com/hashicorp/vault-client-go/schema"
 	"github.com/pingolabscl/go-app/errors"
 	"github.com/pingolabscl/go-app/logger"
 )
@@ -40,7 +40,10 @@ func New(cfg Config) (app *App, err error) {
 	vaultConfig := determineVaultConfig(cfg.Vault)
 	var vaultClient *vault.Client
 	if vaultConfig.Addr != "" {
-		vaultClient, err = vault.New(vault.WithAddress(vaultConfig.Addr))
+		vaultClient, err = vault.New(
+			vault.WithAddress(vaultConfig.Addr),
+			vault.WithRequestTimeout(30*time.Second),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +70,7 @@ func New(cfg Config) (app *App, err error) {
 		httpClient:  newHTTPClient(cfg.InsecureSkipVerify),
 		validator:   validator.New(validator.WithRequiredStructEnabled()),
 		vault:       vaultClient,
-		vaultConfig: cfg.Vault,
+		vaultConfig: vaultConfig,
 	}
 
 	app.mux.Use(newAppContextMdw(app))
@@ -88,26 +91,13 @@ func (app *App) Start() {
 	})
 
 	if app.vault != nil {
-		loginRes, err := app.vault.Auth.UserpassLogin(
-			app.ctx,
-			app.vaultConfig.Username,
-			schema.UserpassLoginRequest{
-				Password: app.vaultConfig.Password,
-			},
-		)
-		if err != nil {
+		if err := app.vault.SetToken(app.vaultConfig.Token); err != nil {
 			app.Logger.FatalWithData(app.ctx, "app_crashed", err, map[string]any{
 				"port":       app.port,
 				"tlsEnabled": false,
 			})
 		}
-		if err := app.vault.SetToken(loginRes.Auth.ClientToken); err != nil {
-			app.Logger.FatalWithData(app.ctx, "app_crashed", err, map[string]any{
-				"port":       app.port,
-				"tlsEnabled": false,
-			})
-		}
-		go app.renewVaultToken(loginRes.Auth)
+		go app.renewVaultToken()
 	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", app.port))
@@ -167,6 +157,10 @@ func (app *App) Get(path string, handler Handler) {
 			writer:  w,
 		})
 	})
+	if path == "" {
+		app.mux.Get("/", wrappedHandler)
+		return
+	}
 	app.mux.Get(path, wrappedHandler)
 	app.mux.Get(fmt.Sprintf("%s/", path), wrappedHandler)
 }
@@ -182,6 +176,10 @@ func (app *App) Post(path string, handler Handler) {
 			writer:  w,
 		})
 	})
+	if path == "" {
+		app.mux.Get("/", wrappedHandler)
+		return
+	}
 	app.mux.Post(path, wrappedHandler)
 	app.mux.Post(fmt.Sprintf("%s/", path), wrappedHandler)
 }
@@ -197,6 +195,10 @@ func (app *App) Put(path string, handler Handler) {
 			writer:  w,
 		})
 	})
+	if path == "" {
+		app.mux.Get("/", wrappedHandler)
+		return
+	}
 	app.mux.Put(path, wrappedHandler)
 	app.mux.Put(fmt.Sprintf("%s/", path), wrappedHandler)
 }
@@ -212,6 +214,10 @@ func (app *App) Delete(path string, handler Handler) {
 			writer:  w,
 		})
 	})
+	if path == "" {
+		app.mux.Get("/", wrappedHandler)
+		return
+	}
 	app.mux.Delete(path, wrappedHandler)
 	app.mux.Delete(fmt.Sprintf("%s/", path), wrappedHandler)
 }
@@ -227,6 +233,10 @@ func (app *App) Patch(path string, handler Handler) {
 			writer:  w,
 		})
 	})
+	if path == "" {
+		app.mux.Get("/", wrappedHandler)
+		return
+	}
 	app.mux.Patch(path, wrappedHandler)
 	app.mux.Patch(fmt.Sprintf("%s/", path), wrappedHandler)
 }
