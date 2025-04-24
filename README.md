@@ -30,24 +30,23 @@ go get github.com/pingolabscl/go-app
 package main
 
 import (
-	"context"
-	"fmt"
-	"net/http"
+        "context"
+        "fmt"
+        "net/http"
 
-	"github.com/pingolabscl/go-app"
-    "github.com/pingolabscl/go-app/logger"
+        "github.com/pingolabscl/go-app"
+        "github.com/pingolabscl/go-app/logger"
 )
 
 func main() {
     app, err := goapp.New(goapp.Config{
-        Name: "my-app",
+        Name: "go-app",
         LogLevel: logger.LEVEL_INFO,
         Port: 3000,
         InsecureSkipVerify: true,
         Vault: goapp.VaultConfig{
-            Addr: "http://localhost:8200",
-            Username: "my-user",
-            Password: "my-password",
+            Addr: "https://vault.pingolabs.cl:443",
+            Token: "token",
         },
     })
     if err != nil {

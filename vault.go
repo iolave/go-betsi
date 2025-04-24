@@ -1,9 +1,11 @@
 package goapp
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	vault "github.com/hashicorp/vault-client-go"
@@ -77,26 +79,53 @@ func (app *App) renewVaultToken() {
 	}
 }
 
-func (app *App) GetVaultSecret(secretPath string, result any) error {
+// GetSecret checks if the environment variable value is a valid
+// vault secret path and returns the value as a map[string]any.
+//
+// If the environment variable value is not a valid vault secret path
+// it will try to parse the value as a JSON string and return the
+// value as a map[string]any (THIS IS ONLY MENT TO BE USED
+// FOR DEVELOPMENT PURPOSES ONLY).
+func (app *App) GetSecret(envKey string) (map[string]any, error) {
+	if app.vault == nil {
+		return nil, errors.NewInternalServerError(
+			"failed to get secret",
+			"vault is not configured",
+		)
+	}
+	env := os.Getenv(envKey)
+	if env == "" {
+		return nil, errors.NewInternalServerError(
+			"failed to get secret",
+			fmt.Sprintf("environment variable %s is not set", envKey),
+		)
+	}
+
+	data := map[string]any{}
+	if !strings.HasPrefix(env, "vault:") {
+		err := json.Unmarshal(bytes.NewBufferString(env).Bytes(), &data)
+		if err != nil {
+			return nil, errors.NewInternalServerError(
+				"failed to parse env secret)",
+				err.Error(),
+			)
+		}
+		return data, nil
+	}
+
+	env = strings.TrimPrefix(env, "vault:")
+
 	res, err := app.vault.Secrets.KvV2Read(
 		app.ctx,
-		secretPath,
+		env,
 		vault.WithMountPath("services"),
 	)
 	if err != nil {
-		return errors.NewInternalServerError(
+		return nil, errors.NewInternalServerError(
 			"failed to get vault secret",
 			err.Error(),
 		)
 	}
-	b, err := json.Marshal(res.Data.Data)
-	if err != nil {
-		return errors.NewInternalServerError(
-			"failed to parse vault secret",
-			err.Error(),
-		)
-	}
 
-	json.Unmarshal(b, result)
-	return nil
+	return res.Data.Data, nil
 }
