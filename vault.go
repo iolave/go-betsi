@@ -87,12 +87,6 @@ func (app *App) renewVaultToken() {
 // value as a map[string]any (THIS IS ONLY MENT TO BE USED
 // FOR DEVELOPMENT PURPOSES ONLY).
 func (app *App) GetSecret(envKey string) (map[string]any, error) {
-	if app.vault == nil {
-		return nil, errors.NewInternalServerError(
-			"failed to get secret",
-			"vault is not configured",
-		)
-	}
 	env := os.Getenv(envKey)
 	if env == "" {
 		return nil, errors.NewInternalServerError(
@@ -111,6 +105,13 @@ func (app *App) GetSecret(envKey string) (map[string]any, error) {
 			)
 		}
 		return data, nil
+	}
+
+	if app.vault == nil {
+		return nil, errors.NewInternalServerError(
+			"failed to get secret",
+			"vault is not configured",
+		)
 	}
 
 	env = strings.TrimPrefix(env, "vault:")
