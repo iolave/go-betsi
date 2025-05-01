@@ -53,21 +53,16 @@ func (app *App) renewVaultToken() {
 			Increment: "60m",
 		})
 		if err != nil {
-			app.Logger.Error(app.ctx, fmt.Sprintf("%s_error", base), errors.New(err.Error()))
 			duration := time.Minute * 1
-			app.Logger.DebugWithData(
-				app.ctx,
-				fmt.Sprintf("%s_sleeping", base),
-				map[string]any{
-					"secs": duration.Seconds(),
-				},
-			)
+			app.Logger.ErrorWithData(app.ctx, fmt.Sprintf("%s_error", base), errors.New(err.Error()), map[string]any{
+				"sleeping_for": fmt.Sprintf("%ds", int(duration.Seconds())),
+			})
 			time.Sleep(duration)
 			continue
 		}
 
 		app.Logger.Info(app.ctx, fmt.Sprintf("%s_success", base))
-		duration := time.Duration(float64(res.Auth.LeaseDuration)*0.6) * time.Second
+		duration := time.Duration(float64(res.Auth.LeaseDuration) * 0.1)
 		app.Logger.DebugWithData(
 			app.ctx,
 			fmt.Sprintf("%s_sleeping", base),
@@ -75,6 +70,7 @@ func (app *App) renewVaultToken() {
 				"secs": duration.Seconds(),
 			},
 		)
+
 		time.Sleep(duration)
 	}
 }
