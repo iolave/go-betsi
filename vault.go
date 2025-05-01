@@ -55,7 +55,7 @@ func (app *App) renewVaultToken() {
 		if err != nil {
 			duration := time.Minute * 1
 			app.Logger.ErrorWithData(app.ctx, fmt.Sprintf("%s_error", base), errors.New(err.Error()), map[string]any{
-				"sleeping_for": fmt.Sprintf("%ds", int(duration.Seconds())),
+				"sleepingFor": fmt.Sprintf("%ds", int(duration.Seconds())),
 			})
 			time.Sleep(duration)
 			continue
@@ -66,7 +66,8 @@ func (app *App) renewVaultToken() {
 			app.ctx,
 			fmt.Sprintf("%s_success", base),
 			map[string]any{
-				"sleeping_for": fmt.Sprintf("%ds", int(duration.Seconds())),
+				"leaseDuration": res.Auth.LeaseDuration,
+				"sleepingFor":   fmt.Sprintf("%ds", int(duration.Seconds())),
 			},
 		)
 
