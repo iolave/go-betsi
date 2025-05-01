@@ -61,7 +61,8 @@ func (app *App) renewVaultToken() {
 			continue
 		}
 
-		duration := time.Duration(float64(res.Auth.LeaseDuration) * 0.66)
+		lease := (res.Auth.LeaseDuration / 60) * int(time.Minute)
+		duration := time.Duration(float64(lease) * 0.6)
 		app.Logger.InfoWithData(
 			app.ctx,
 			fmt.Sprintf("%s_success", base),
