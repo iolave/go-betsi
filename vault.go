@@ -61,13 +61,12 @@ func (app *App) renewVaultToken() {
 			continue
 		}
 
-		app.Logger.Info(app.ctx, fmt.Sprintf("%s_success", base))
-		duration := time.Duration(float64(res.Auth.LeaseDuration) * 0.1)
-		app.Logger.DebugWithData(
+		duration := time.Duration(float64(res.Auth.LeaseDuration) * 0.66)
+		app.Logger.InfoWithData(
 			app.ctx,
-			fmt.Sprintf("%s_sleeping", base),
+			fmt.Sprintf("%s_success", base),
 			map[string]any{
-				"secs": duration.Seconds(),
+				"sleeping_for": fmt.Sprintf("%ds", int(duration.Seconds())),
 			},
 		)
 
