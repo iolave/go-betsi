@@ -69,7 +69,6 @@ func (app *App) renewVaultToken() {
 			app.ctx,
 			fmt.Sprintf("%s_success", base),
 			map[string]any{
-				"res":         res,
 				"auth":        res.Auth,
 				"sleepingFor": fmt.Sprintf("%ds", int(sleepTime)),
 			},
