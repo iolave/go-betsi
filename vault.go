@@ -65,12 +65,13 @@ func (app *App) renewVaultToken() {
 		// Lease duration is in seconds
 		lease := res.Auth.LeaseDuration
 		sleepTime := float64(lease) * 0.1
-		app.Logger.InfoWithData(
+		app.Logger.DebugWithData(
 			app.ctx,
 			fmt.Sprintf("%s_success", base),
 			map[string]any{
-				"leaseDuration": res.Auth.LeaseDuration,
-				"sleepingFor":   fmt.Sprintf("%ds", int(sleepTime)),
+				"res":         res,
+				"auth":        res.Auth,
+				"sleepingFor": fmt.Sprintf("%ds", int(sleepTime)),
 			},
 		)
 
