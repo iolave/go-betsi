@@ -50,8 +50,9 @@ func (app *App) renewVaultToken() {
 
 	for {
 		res, err := app.vault.Auth.TokenRenewSelf(app.ctx, schema.TokenRenewSelfRequest{
-			Increment: "3600s",
+			Increment: "2h",
 		})
+
 		if err != nil {
 			duration := time.Minute * 1
 			app.Logger.ErrorWithData(app.ctx, fmt.Sprintf("%s_error", base), errors.New(err.Error()), map[string]any{
@@ -63,7 +64,7 @@ func (app *App) renewVaultToken() {
 
 		// Lease duration is in seconds
 		lease := res.Auth.LeaseDuration
-		sleepTime := float64(lease) * 0.25
+		sleepTime := float64(lease) * 0.1
 		app.Logger.InfoWithData(
 			app.ctx,
 			fmt.Sprintf("%s_success", base),
