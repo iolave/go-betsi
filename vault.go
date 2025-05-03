@@ -50,10 +50,11 @@ func (app *App) renewVaultToken() {
 
 	for {
 		res, err := app.vault.Auth.TokenRenewSelf(app.ctx, schema.TokenRenewSelfRequest{
-			Increment: "3600s",
+			Increment: "6h",
 		})
+
 		if err != nil {
-			duration := time.Minute * 1
+			duration := time.Minute * 15
 			app.Logger.ErrorWithData(app.ctx, fmt.Sprintf("%s_error", base), errors.New(err.Error()), map[string]any{
 				"sleepingFor": fmt.Sprintf("%ds", int(duration.Seconds())),
 			})
@@ -63,27 +64,30 @@ func (app *App) renewVaultToken() {
 
 		// Lease duration is in seconds
 		lease := res.Auth.LeaseDuration
-		sleepTime := float64(lease) * 0.25
-		app.Logger.InfoWithData(
-			app.ctx,
-			fmt.Sprintf("%s_success", base),
-			map[string]any{
-				"leaseDuration": res.Auth.LeaseDuration,
-				"sleepingFor":   fmt.Sprintf("%ds", int(sleepTime)),
-			},
-		)
-
+		sleepTime := float64(lease) * 0.6
+		//app.Logger.DebugWithData(
+		//	app.ctx,
+		//	fmt.Sprintf("%s_success", base),
+		//	map[string]any{
+		//		"auth":        res.Auth,
+		//		"sleepingFor": fmt.Sprintf("%ds", int(sleepTime)),
+		//	},
+		//)
 		time.Sleep(time.Duration(sleepTime * float64(time.Second)))
 	}
 }
 
-// GetSecret checks if the environment variable value is a valid
-// vault secret path and returns the value as a map[string]any.
+// GetSecret takes an environmnet variable key and checks if it's
+// value is a valid vault secret path (format `vault:path/to/secret`)
+// and returns its value as map.
 //
 // If the environment variable value is not a valid vault secret path
-// it will try to parse the value as a JSON string and return the
-// value as a map[string]any (THIS IS ONLY MENT TO BE USED
-// FOR DEVELOPMENT PURPOSES ONLY).
+// it will assume it's value is a valid json string that's going to
+// parsed and returned as a map (THIS IS ONLY MENT TO BE USED FOR
+// DEVELOPMENT PURPOSES ONLY).
+//
+// If it fails to retrieve the secret from vault or parse the json
+// string it will return an error.
 func (app *App) GetSecret(envKey string) (map[string]any, error) {
 	env := os.Getenv(envKey)
 	if env == "" {
