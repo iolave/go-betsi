@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -45,6 +46,12 @@ func New(cfg Config) (app *App, err error) {
 			vault.WithRequestTimeout(30*time.Second),
 		)
 		if err != nil {
+			return nil, err
+		}
+		customHeaders := http.Header{}
+		customHeaders.Set("CF-Access-Client-Id", os.Getenv("CF_ACCESS_CLIENT_ID"))
+		customHeaders.Set("CF-Access-Client-Secret", os.Getenv("CF_ACCESS_CLIENT_SECRET"))
+		if err := vaultClient.SetCustomHeaders(customHeaders); err != nil {
 			return nil, err
 		}
 	}

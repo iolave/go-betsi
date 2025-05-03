@@ -15,6 +15,8 @@ A simple web framework for Go.
 
 - `VAULT_ADDR`: Vault address (format: `scheme://host:port`).
 - `VAULT_TOKEN`: Vault token.
+- `CF_ACCESS_CLIENT_ID`: Cloudflare access client id.
+- `CF_ACCESS_CLIENT_SECRET`: Cloudflare access client secret.
 
 ## Getting Started
 
