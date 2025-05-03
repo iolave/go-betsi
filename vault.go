@@ -50,7 +50,7 @@ func (app *App) renewVaultToken() {
 
 	for {
 		res, err := app.vault.Auth.TokenRenewSelf(app.ctx, schema.TokenRenewSelfRequest{
-			Increment: "30s",
+			Increment: "6h",
 		})
 
 		if err != nil {
