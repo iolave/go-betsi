@@ -77,13 +77,17 @@ func (app *App) renewVaultToken() {
 	}
 }
 
-// GetSecret checks if the environment variable value is a valid
-// vault secret path and returns the value as a map[string]any.
+// GetSecret takes an environmnet variable key and checks if it's
+// value is a valid vault secret path (format `vault:path/to/secret`)
+// and returns its value as map.
 //
 // If the environment variable value is not a valid vault secret path
-// it will try to parse the value as a JSON string and return the
-// value as a map[string]any (THIS IS ONLY MENT TO BE USED
-// FOR DEVELOPMENT PURPOSES ONLY).
+// it will assume it's value is a valid json string that's going to
+// parsed and returned as a map (THIS IS ONLY MENT TO BE USED FOR
+// DEVELOPMENT PURPOSES ONLY).
+//
+// If it fails to retrieve the secret from vault or parse the json
+// string it will return an error.
 func (app *App) GetSecret(envKey string) (map[string]any, error) {
 	env := os.Getenv(envKey)
 	if env == "" {
