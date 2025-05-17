@@ -48,6 +48,8 @@ func (ar *AppRequest) ReadJSONBody(v any) error {
 
 // SendError sends an error response, following the
 // errors.HTTP structure.
+//   - If the error is not of type *errors.HTTP, an internal server
+//     error will be sent instead.
 func (ar *AppRequest) SendError(err error) {
 	ctx := ar.Context()
 	if err == nil {
@@ -82,13 +84,31 @@ func (ar *AppRequest) SendError(err error) {
 func (ar *AppRequest) SendJSON(result any) {
 	ctx := ar.Context()
 
-	if err := ar.app.validator.Struct(result); err != nil {
-		ar.SendError(errors.NewInternalServerError(
-			"unable to send response, response didn't passed validation",
-			err.Error(),
-		))
+	if reflect.TypeOf(result).Kind() == reflect.Slice {
+		valueOf := reflect.ValueOf(result)
+		length := valueOf.Len()
+		for i := 0; i < length; i++ {
+			v := valueOf.Index(i).Interface()
 
-		return
+			if err := ar.app.validator.Struct(v); err != nil {
+				ar.SendError(errors.NewInternalServerError(
+					"unable to send response, response didn't passed validation",
+					err.Error(),
+				))
+
+				return
+			}
+		}
+
+	} else {
+		if err := ar.app.validator.Struct(result); err != nil {
+			ar.SendError(errors.NewInternalServerError(
+				"unable to send response, response didn't passed validation",
+				err.Error(),
+			))
+
+			return
+		}
 	}
 
 	b, err := json.Marshal(result)
