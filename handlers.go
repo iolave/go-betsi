@@ -39,8 +39,35 @@ func (ar *AppRequest) ReadJSONBody(v any) error {
 	if err := json.Unmarshal(b, v); err != nil {
 		return errors.NewBadRequestError("invalid json content", err.Error())
 	}
-	if err := ar.app.validator.Struct(v); err != nil {
-		return errors.NewBadRequestError("validation error", err.Error())
+
+	valueOf := reflect.ValueOf(v)
+	var valueToValidate any
+	if valueOf.Kind() == reflect.Ptr {
+		valueOf := reflect.ValueOf(valueOf.Elem().Interface())
+		valueToValidate = valueOf.Interface()
+	} else {
+		valueToValidate = v
+	}
+
+	if reflect.TypeOf(valueToValidate).Kind() == reflect.Slice {
+		valueOf := reflect.ValueOf(valueToValidate)
+		length := valueOf.Len()
+		for i := 0; i < length; i++ {
+			valueToValidate := valueOf.Index(i).Interface()
+			if err := ar.app.validator.Struct(valueToValidate); err != nil {
+				return errors.NewInternalServerError(
+					"unable to send response, response didn't passed validation",
+					err.Error(),
+				)
+			}
+		}
+	} else {
+		if err := ar.app.validator.Struct(valueToValidate); err != nil {
+			return errors.NewInternalServerError(
+				"unable to send response, response didn't passed validation",
+				err.Error(),
+			)
+		}
 	}
 
 	return nil
