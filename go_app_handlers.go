@@ -80,16 +80,22 @@ func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
 func (ar *AppRequest) SendError(err error) {
 	ctx := ar.Context()
 	if err == nil {
-		err = errors.NewInternalServerError("missing error", "unknown cause")
+		err = errors.NewInternalServerError("nil error sent", nil)
 	}
+	var error *errors.HTTPError
 
-	if reflect.TypeFor[*errors.HTTPError]() != reflect.TypeOf(err) {
-		err = errors.NewInternalServerError("internal error", err.Error())
+	switch err := err.(type) {
+	case *errors.HTTPError:
+		error = err
+	case *errors.Error:
+		error = errors.NewInternalServerError("internal error", err)
+	default:
+		error = errors.NewInternalServerError("internal error", errors.Wrap(err))
 	}
 
 	ar.writer.Header().Set("content-type", "application/json")
-	ar.writer.WriteHeader(err.(*errors.HTTPError).StatusCode)
-	b, _ := json.Marshal(err.(*errors.HTTPError))
+	ar.writer.WriteHeader(error.StatusCode)
+	b, _ := json.Marshal(error)
 	ar.writer.Write(b)
 	ar.App.Logger.ErrorWithData(ctx, "handler_failed", err, map[string]any{
 		"path": ar.Request.URL.Path,
