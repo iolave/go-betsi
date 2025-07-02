@@ -11,8 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"github.com/hashicorp/vault-client-go"
-	"github.com/pingolabscl/go-app/errors"
-	"github.com/pingolabscl/go-app/logger"
+	"github.com/pingolabscl/go-app/pkg/errors"
+	"github.com/pingolabscl/go-app/pkg/logger"
 )
 
 type App struct {

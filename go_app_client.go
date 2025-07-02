@@ -10,8 +10,8 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/pingolabscl/go-app/errors"
-	"github.com/pingolabscl/go-app/trace"
+	"github.com/pingolabscl/go-app/pkg/errors"
+	"github.com/pingolabscl/go-app/pkg/trace"
 )
 
 func newHTTPClient(insecureSkipVerify bool) *http.Client {

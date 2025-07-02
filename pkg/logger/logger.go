@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/pingolabscl/go-app/errors"
-	"github.com/pingolabscl/go-app/trace"
+	"github.com/pingolabscl/go-app/pkg/errors"
+	"github.com/pingolabscl/go-app/pkg/trace"
 	"golang.org/x/mod/semver"
 )
 

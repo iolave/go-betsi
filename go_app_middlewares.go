@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/pingolabscl/go-app/trace"
+	"github.com/pingolabscl/go-app/pkg/trace"
 )
 
 type mdwHandler func(http.Handler) http.Handler

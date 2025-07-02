@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/pingolabscl/go-app/errors"
+	"github.com/pingolabscl/go-app/pkg/errors"
 )
 
 type AppRequest struct {

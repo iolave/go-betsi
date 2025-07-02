@@ -10,7 +10,7 @@ import (
 
 	vault "github.com/hashicorp/vault-client-go"
 	"github.com/hashicorp/vault-client-go/schema"
-	"github.com/pingolabscl/go-app/errors"
+	"github.com/pingolabscl/go-app/pkg/errors"
 )
 
 type VaultConfig struct {
