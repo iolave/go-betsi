@@ -165,7 +165,7 @@ func (l Logger) buildLogEntry(
 		Level:     level,
 		Name:      l.Name,
 		Version:   l.version,
-		Trace:     trace.Get(ctx),
+		Trace:     trace.GetFromContext(ctx),
 		Error:     err,
 		Info:      info,
 		Msg:       msg,

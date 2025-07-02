@@ -102,7 +102,7 @@ func (app *App) GetSecret(envKey string) (map[string]any, error) {
 		err := json.Unmarshal(bytes.NewBufferString(env).Bytes(), &data)
 		if err != nil {
 			return nil, errors.NewInternalServerError(
-				"failed to parse env secret)",
+				"failed to parse env secret",
 				err.Error(),
 			)
 		}

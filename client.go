@@ -78,11 +78,11 @@ func (app *App) RequestJSON(ctx context.Context, r JSONRequest) error {
 		return errors.NewBadRequestError("unable to send request", "failed to marshal body")
 	}
 
-	tr := trace.Get(ctx)
+	tr := trace.GetFromContext(ctx)
 	if tr.RequestID == "" {
 		tr.RequestID = uuid.NewString()
 	}
-	ctx = trace.Set(ctx, tr)
+	ctx = trace.SetContext(ctx, tr)
 
 	req, err := http.NewRequestWithContext(ctx, r.Method, url, bytes.NewReader(b))
 	if err != nil {

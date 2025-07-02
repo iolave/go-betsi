@@ -37,7 +37,7 @@ func newRequestIdMdw() mdwHandler {
 				requestId = uuid.New().String()
 			}
 
-			ctx = trace.Set(ctx, trace.Trace{
+			ctx = trace.SetContext(ctx, trace.Trace{
 				RequestID: requestId,
 			})
 
