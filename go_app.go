@@ -17,7 +17,7 @@ import (
 
 type App struct {
 	ctx         context.Context
-	Logger      logger.Logger
+	Logger      *logger.Logger
 	mux         *chi.Mux
 	port        int
 	clients     map[string]client
@@ -65,13 +65,18 @@ func New(cfg Config) (app *App, err error) {
 		port = cfg.Port
 	}
 
+	logger, logErr := logger.New(logger.Config{
+		Name:  cfg.Name,
+		Level: cfg.LogLevel,
+	})
+	if logErr != nil {
+		return nil, err
+	}
+
 	app = &App{
-		ctx:  ctx,
-		port: port,
-		Logger: logger.New(logger.Config{
-			Name:  cfg.Name,
-			Level: cfg.LogLevel,
-		}),
+		ctx:         ctx,
+		port:        port,
+		Logger:      logger,
 		mux:         chi.NewRouter(),
 		clients:     make(map[string]client),
 		httpClient:  newHTTPClient(cfg.InsecureSkipVerify),

@@ -9,6 +9,15 @@ import (
 )
 
 func TestGetFromContext(t *testing.T) {
+	t.Run("should return an empty trace if the context is nil", func(t *testing.T) {
+		want := Trace{}
+		got := GetFromContext(nil)
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("GetFromContext() = %v, want %v", got, want)
+		}
+	})
+
 	t.Run("should return an empty trace if the context does not contain a trace", func(t *testing.T) {
 		ctx := context.Background()
 		want := Trace{}

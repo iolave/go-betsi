@@ -24,16 +24,29 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s", e.Name, e.Message)
 }
 
+// MarshalJSON returns the JSON representation of the error.
+func (e Error) MarshalJSON() ([]byte, error) {
+	if _, err := json.Marshal(e.Original); err != nil {
+		e.Original = nil
+	}
+
+	return json.Marshal(struct {
+		Name     string `json:"name"`
+		Message  string `json:"message"`
+		Original error  `json:"original"`
+	}{
+		Name:     e.Name,
+		Message:  e.Message,
+		Original: e.Original,
+	})
+}
+
 // JSON returns the JSON representation of the error.
 //
 // If the Original property is not marshalable, it will
 // be omitted from the output.
 func (e Error) JSON() string {
-	b, err := json.Marshal(e)
-	if err != nil {
-		e.Original = nil
-	}
-	b, _ = json.Marshal(e)
+	b, _ := json.Marshal(e)
 	return string(b)
 }
 

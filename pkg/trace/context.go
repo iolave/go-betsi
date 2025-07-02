@@ -14,6 +14,10 @@ const ctx_trace_key = "trace"
 // If the context does not contain a trace or its
 // type is not Trace, then a new Trace is zero-initialized.
 func GetFromContext(ctx context.Context) Trace {
+	if ctx == nil {
+		return Trace{}
+	}
+
 	trace := ctx.Value(ctx_trace_key)
 	if trace == nil {
 		return Trace{}

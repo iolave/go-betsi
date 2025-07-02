@@ -1,28 +1,55 @@
 package logger
 
-type Level string
+// Level is the level of the logger.
+type Level int
 
 const (
-	LEVEL_DEBUG Level = "debug"
-	LEVEL_INFO  Level = "info"
-	LEVEL_WARN  Level = "warn"
-	LEVEL_ERROR Level = "error"
-	LEVEL_FATAL Level = "fatal"
+	// LEVEL_TRACE is the trace level.
+	LEVEL_TRACE Level = (iota + 1) * 10
+	// LEVEL_DEBUG is the debug level.
+	LEVEL_DEBUG
+	// LEVEL_INFO is the info level.
+	LEVEL_INFO
+	// LEVEL_WARN is the warn level.
+	LEVEL_WARN
+	// LEVEL_ERROR is the error level.
+	LEVEL_ERROR
+	// LEVEL_FATAL is the fatal level.
+	LEVEL_FATAL
 )
 
-func (l Level) toInt() int {
+// String returns the string representation of the level
+// in lower case.
+func (l Level) String() string {
 	switch l {
-	default:
-		return 0
+	case LEVEL_TRACE:
+		return "trace"
 	case LEVEL_DEBUG:
-		return 10
+		return "debug"
 	case LEVEL_INFO:
-		return 20
+		return "info"
 	case LEVEL_WARN:
-		return 30
+		return "warn"
 	case LEVEL_ERROR:
-		return 40
+		return "error"
 	case LEVEL_FATAL:
-		return 50
+		return "fatal"
+	default:
+		return "unknown"
 	}
+}
+
+// IsValid checks if the value is a valid level.
+func (l Level) IsValid() bool {
+	// Check if the value is a multiple of 10
+	if l%10 != 0 {
+		return false
+	}
+
+	// Check if the value is one on the defined levels.
+	if l < LEVEL_TRACE || l > LEVEL_FATAL {
+		return false
+	}
+
+	return true
 }
