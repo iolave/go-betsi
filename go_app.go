@@ -41,7 +41,7 @@ func New(cfg Config) (*App, *errors.Error) {
 	vaultConfig := determineVaultConfig(cfg.Vault)
 	var vaultClient *vault.Client
 	if vaultConfig.Addr != "" {
-		vaultClient, err := vault.New(
+		vault, err := vault.New(
 			vault.WithAddress(vaultConfig.Addr),
 			vault.WithRequestTimeout(30*time.Second),
 		)
@@ -51,9 +51,10 @@ func New(cfg Config) (*App, *errors.Error) {
 		customHeaders := http.Header{}
 		customHeaders.Set("CF-Access-Client-Id", os.Getenv("CF_ACCESS_CLIENT_ID"))
 		customHeaders.Set("CF-Access-Client-Secret", os.Getenv("CF_ACCESS_CLIENT_SECRET"))
-		if err := vaultClient.SetCustomHeaders(customHeaders); err != nil {
+		if err := vault.SetCustomHeaders(customHeaders); err != nil {
 			return nil, errors.Wrap(err)
 		}
+		vaultClient = vault
 	}
 
 	if cfg.Name == "" {
@@ -162,9 +163,9 @@ func (app *App) Get(path string, handler Handler) {
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		path = path[0 : len(path)-1]
 	}
-	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
+	wrappedHandler := app.newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
-			app:     app,
+			App:     app,
 			Request: r,
 			writer:  w,
 		})
@@ -181,15 +182,15 @@ func (app *App) Post(path string, handler Handler) {
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		path = path[0 : len(path)-1]
 	}
-	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
+	wrappedHandler := app.newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
-			app:     app,
+			App:     app,
 			Request: r,
 			writer:  w,
 		})
 	})
 	if path == "" {
-		app.mux.Get("/", wrappedHandler)
+		app.mux.Post("/", wrappedHandler)
 		return
 	}
 	app.mux.Post(path, wrappedHandler)
@@ -200,15 +201,15 @@ func (app *App) Put(path string, handler Handler) {
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		path = path[0 : len(path)-1]
 	}
-	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
+	wrappedHandler := app.newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
-			app:     app,
+			App:     app,
 			Request: r,
 			writer:  w,
 		})
 	})
 	if path == "" {
-		app.mux.Get("/", wrappedHandler)
+		app.mux.Put("/", wrappedHandler)
 		return
 	}
 	app.mux.Put(path, wrappedHandler)
@@ -219,15 +220,15 @@ func (app *App) Delete(path string, handler Handler) {
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		path = path[0 : len(path)-1]
 	}
-	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
+	wrappedHandler := app.newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
-			app:     app,
+			App:     app,
 			Request: r,
 			writer:  w,
 		})
 	})
 	if path == "" {
-		app.mux.Get("/", wrappedHandler)
+		app.mux.Delete("/", wrappedHandler)
 		return
 	}
 	app.mux.Delete(path, wrappedHandler)
@@ -238,15 +239,15 @@ func (app *App) Patch(path string, handler Handler) {
 	if len(path) > 0 && path[len(path)-1] == '/' {
 		path = path[0 : len(path)-1]
 	}
-	wrappedHandler := newHandler(func(w http.ResponseWriter, r *http.Request) {
+	wrappedHandler := app.newHandler(func(w http.ResponseWriter, r *http.Request) {
 		handler(AppRequest{
-			app:     app,
+			App:     app,
 			Request: r,
 			writer:  w,
 		})
 	})
 	if path == "" {
-		app.mux.Get("/", wrappedHandler)
+		app.mux.Patch("/", wrappedHandler)
 		return
 	}
 	app.mux.Patch(path, wrappedHandler)

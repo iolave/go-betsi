@@ -13,7 +13,7 @@ import (
 )
 
 type AppRequest struct {
-	app     *App
+	App     *App
 	Request *http.Request
 	writer  http.ResponseWriter
 }
@@ -54,7 +54,7 @@ func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
 		length := valueOf.Len()
 		for i := 0; i < length; i++ {
 			valueToValidate := valueOf.Index(i).Interface()
-			if err := ar.app.validator.Struct(valueToValidate); err != nil {
+			if err := ar.App.validator.Struct(valueToValidate); err != nil {
 				return errors.NewInternalServerError(
 					"unable to send response, response didn't passed validation",
 					err.Error(),
@@ -62,7 +62,7 @@ func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
 			}
 		}
 	} else {
-		if err := ar.app.validator.Struct(valueToValidate); err != nil {
+		if err := ar.App.validator.Struct(valueToValidate); err != nil {
 			return errors.NewInternalServerError(
 				"unable to send response, response didn't passed validation",
 				err.Error(),
@@ -91,7 +91,7 @@ func (ar *AppRequest) SendError(err error) {
 	ar.writer.WriteHeader(err.(*errors.HTTPError).StatusCode)
 	b, _ := json.Marshal(err.(*errors.HTTPError))
 	ar.writer.Write(b)
-	ar.app.Logger.ErrorWithData(ctx, "handler_failed", err, map[string]any{
+	ar.App.Logger.ErrorWithData(ctx, "handler_failed", err, map[string]any{
 		"path": ar.Request.URL.Path,
 	})
 }
@@ -117,7 +117,7 @@ func (ar *AppRequest) SendJSON(result any) {
 		for i := 0; i < length; i++ {
 			v := valueOf.Index(i).Interface()
 
-			if err := ar.app.validator.Struct(v); err != nil {
+			if err := ar.App.validator.Struct(v); err != nil {
 				ar.SendError(errors.NewInternalServerError(
 					"unable to send response, response didn't passed validation",
 					err.Error(),
@@ -128,7 +128,7 @@ func (ar *AppRequest) SendJSON(result any) {
 		}
 
 	} else {
-		if err := ar.app.validator.Struct(result); err != nil {
+		if err := ar.App.validator.Struct(result); err != nil {
 			ar.SendError(errors.NewInternalServerError(
 				"unable to send response, response didn't passed validation",
 				err.Error(),
@@ -151,21 +151,20 @@ func (ar *AppRequest) SendJSON(result any) {
 	ar.writer.Header().Set("content-type", "application/json")
 	ar.writer.WriteHeader(http.StatusOK)
 	ar.writer.Write(b)
-	ar.app.Logger.InfoWithData(ctx, "handler_success", map[string]any{
+	ar.App.Logger.InfoWithData(ctx, "handler_success", map[string]any{
 		"path": ar.Request.URL.Path,
 	})
 }
 
-type Handler func(AppRequest)
+type Handler func(ar AppRequest)
 
-func newHandler(handler http.HandlerFunc) http.HandlerFunc {
+func (app *App) newHandler(handler http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		app := GetFromContext(ctx)
 		app.Logger.InfoWithData(ctx, "handler_started", map[string]any{
 			"path": r.URL.Path,
 		})
-		handler.ServeHTTP(w, r.WithContext(ctx))
+		handler.ServeHTTP(w, r)
 	})
 }
 
