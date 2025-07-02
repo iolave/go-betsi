@@ -66,6 +66,15 @@ func NewWithName(name string, message string) *Error {
 	}
 }
 
+// NewWithNameAndErr creates a new Error with the given name and error.
+func NewWithNameAndErr(name string, message string, err error) *Error {
+	return &Error{
+		Name:     name,
+		Message:  message,
+		Original: err,
+	}
+}
+
 // Wrap wraps an error with a new Error. If
 // the error is of type *Error, it returns the
 // original error.

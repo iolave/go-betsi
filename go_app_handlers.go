@@ -31,7 +31,7 @@ func (ar *AppRequest) Context() context.Context {
 // ReadJSONBody unmarshals a request json body into v.
 // It also does struct validation using go-playground/validator
 // rules.
-func (ar *AppRequest) ReadJSONBody(v any) error {
+func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
 	b, err := io.ReadAll(ar.Request.Body)
 	if err != nil {
 		return errors.NewInternalServerError("failed to read request body", err.Error())

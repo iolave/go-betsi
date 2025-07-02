@@ -35,24 +35,24 @@ type Config struct {
 	Vault              VaultConfig
 }
 
-func New(cfg Config) (app *App, err error) {
+func New(cfg Config) (*App, *errors.Error) {
 	ctx := context.Background()
 
 	vaultConfig := determineVaultConfig(cfg.Vault)
 	var vaultClient *vault.Client
 	if vaultConfig.Addr != "" {
-		vaultClient, err = vault.New(
+		vaultClient, err := vault.New(
 			vault.WithAddress(vaultConfig.Addr),
 			vault.WithRequestTimeout(30*time.Second),
 		)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err)
 		}
 		customHeaders := http.Header{}
 		customHeaders.Set("CF-Access-Client-Id", os.Getenv("CF_ACCESS_CLIENT_ID"))
 		customHeaders.Set("CF-Access-Client-Secret", os.Getenv("CF_ACCESS_CLIENT_SECRET"))
 		if err := vaultClient.SetCustomHeaders(customHeaders); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err)
 		}
 	}
 
@@ -65,15 +65,15 @@ func New(cfg Config) (app *App, err error) {
 		port = cfg.Port
 	}
 
-	logger, logErr := logger.New(logger.Config{
+	logger, err := logger.New(logger.Config{
 		Name:  cfg.Name,
 		Level: cfg.LogLevel,
 	})
-	if logErr != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	app = &App{
+	app := &App{
 		ctx:         ctx,
 		port:        port,
 		Logger:      logger,

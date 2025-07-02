@@ -59,7 +59,7 @@ type JSONRequest struct {
 
 // RequestJSON sends a request to the specified client and returns the response, it only supports JSON requests at the moment.
 // TODO: Add support for streaming requests.
-func (app *App) RequestJSON(ctx context.Context, r JSONRequest) error {
+func (app *App) RequestJSON(ctx context.Context, r JSONRequest) *errors.HTTPError {
 	client, ok := app.clients[r.ClientName]
 	if !ok {
 		return errors.NewInternalServerError("unable to send request", "client not found")
@@ -118,5 +118,9 @@ func (app *App) RequestJSON(ctx context.Context, r JSONRequest) error {
 		return httpErr
 	}
 
-	return json.Unmarshal(b, r.Result)
+	if err := json.Unmarshal(b, r.Result); err != nil {
+		return errors.NewInternalServerError("failed to unmarshal response", errors.Wrap(err))
+	}
+
+	return nil
 }

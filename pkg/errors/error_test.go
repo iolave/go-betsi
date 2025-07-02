@@ -104,3 +104,17 @@ func TestError(t *testing.T) {
 		}
 	})
 }
+
+func TestNewWithNameAndErr(t *testing.T) {
+	t.Run("should return new error with the given name and error", func(t *testing.T) {
+		want := Error{
+			Name:     "error",
+			Message:  "error",
+			Original: errors.New("error"),
+		}
+		got := NewWithNameAndErr("error", "error", errors.New("error"))
+		if reflect.DeepEqual(got, want) {
+			t.Errorf("NewWithNameAndErr() = %v, want %v", got, want)
+		}
+	})
+}

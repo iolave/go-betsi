@@ -44,7 +44,7 @@ func (app *App) renewVaultToken() {
 		app.Logger.Fatal(
 			app.ctx,
 			fmt.Sprintf("%s_error", base),
-			errors.New("vault is not configured"),
+			errors.NewWithName("vault_error", "vault is not configured"),
 		)
 	}
 
@@ -55,7 +55,7 @@ func (app *App) renewVaultToken() {
 
 		if err != nil {
 			duration := time.Minute * 15
-			app.Logger.ErrorWithData(app.ctx, fmt.Sprintf("%s_error", base), errors.New(err.Error()), map[string]any{
+			app.Logger.ErrorWithData(app.ctx, fmt.Sprintf("%s_error", base), errors.Wrap(err), map[string]any{
 				"sleepingFor": fmt.Sprintf("%ds", int(duration.Seconds())),
 			})
 			time.Sleep(duration)
@@ -88,12 +88,12 @@ func (app *App) renewVaultToken() {
 //
 // If it fails to retrieve the secret from vault or parse the json
 // string it will return an error.
-func (app *App) GetSecret(envKey string) (map[string]any, error) {
+func (app *App) GetSecret(envKey string) (map[string]any, *errors.Error) {
 	env := os.Getenv(envKey)
 	if env == "" {
-		return nil, errors.NewInternalServerError(
-			"failed to get secret",
-			fmt.Sprintf("environment variable %s is not set", envKey),
+		return nil, errors.NewWithName(
+			"vault_error",
+			fmt.Sprintf("failed to get secret, environment variable %s is not set", envKey),
 		)
 	}
 
@@ -101,18 +101,19 @@ func (app *App) GetSecret(envKey string) (map[string]any, error) {
 	if !strings.HasPrefix(env, "vault:") {
 		err := json.Unmarshal(bytes.NewBufferString(env).Bytes(), &data)
 		if err != nil {
-			return nil, errors.NewInternalServerError(
-				"failed to parse env secret",
-				err.Error(),
+			return nil, errors.NewWithNameAndErr(
+				"vault_error",
+				"failed to unmarshal env secret",
+				err,
 			)
 		}
 		return data, nil
 	}
 
 	if app.vault == nil {
-		return nil, errors.NewInternalServerError(
-			"failed to get secret",
-			"vault is not configured",
+		return nil, errors.NewWithName(
+			"vault_error",
+			"failed to get secret, vault is not configured",
 		)
 	}
 
@@ -124,9 +125,10 @@ func (app *App) GetSecret(envKey string) (map[string]any, error) {
 		vault.WithMountPath("services"),
 	)
 	if err != nil {
-		return nil, errors.NewInternalServerError(
+		return nil, errors.NewWithNameAndErr(
+			"vault_error",
 			"failed to get vault secret",
-			err.Error(),
+			err,
 		)
 	}
 
