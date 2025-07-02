@@ -34,10 +34,10 @@ func (ar *AppRequest) Context() context.Context {
 func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
 	b, err := io.ReadAll(ar.Request.Body)
 	if err != nil {
-		return errors.NewInternalServerError("failed to read request body", err.Error())
+		return errors.NewInternalServerError("failed to read request body", errors.Wrap(err))
 	}
 	if err := json.Unmarshal(b, v); err != nil {
-		return errors.NewBadRequestError("invalid json content", err.Error())
+		return errors.NewBadRequestError("invalid json content", errors.Wrap(err))
 	}
 
 	valueOf := reflect.ValueOf(v)
@@ -57,7 +57,7 @@ func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
 			if err := ar.App.validator.Struct(valueToValidate); err != nil {
 				return errors.NewInternalServerError(
 					"unable to send response, response didn't passed validation",
-					err.Error(),
+					errors.Wrap(err),
 				)
 			}
 		}
@@ -65,7 +65,7 @@ func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
 		if err := ar.App.validator.Struct(valueToValidate); err != nil {
 			return errors.NewInternalServerError(
 				"unable to send response, response didn't passed validation",
-				err.Error(),
+				errors.Wrap(err),
 			)
 		}
 	}
@@ -82,8 +82,8 @@ func (ar *AppRequest) SendError(err error) {
 	if err == nil {
 		err = errors.NewInternalServerError("nil error sent", nil)
 	}
-	var error *errors.HTTPError
 
+	var error *errors.HTTPError
 	switch err := err.(type) {
 	case *errors.HTTPError:
 		error = err
@@ -126,7 +126,7 @@ func (ar *AppRequest) SendJSON(result any) {
 			if err := ar.App.validator.Struct(v); err != nil {
 				ar.SendError(errors.NewInternalServerError(
 					"unable to send response, response didn't passed validation",
-					err.Error(),
+					errors.Wrap(err),
 				))
 
 				return
@@ -137,7 +137,7 @@ func (ar *AppRequest) SendJSON(result any) {
 		if err := ar.App.validator.Struct(result); err != nil {
 			ar.SendError(errors.NewInternalServerError(
 				"unable to send response, response didn't passed validation",
-				err.Error(),
+				errors.Wrap(err),
 			))
 
 			return
@@ -148,7 +148,7 @@ func (ar *AppRequest) SendJSON(result any) {
 	if err != nil {
 		ar.SendError(errors.NewInternalServerError(
 			"failed to serialize result",
-			"result might contain invalid json content",
+			errors.Wrap(err),
 		))
 
 		return
@@ -167,9 +167,11 @@ type Handler func(ar AppRequest)
 func (app *App) newHandler(handler http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+
 		app.Logger.InfoWithData(ctx, "handler_started", map[string]any{
 			"path": r.URL.Path,
 		})
+
 		handler.ServeHTTP(w, r)
 	})
 }
@@ -192,10 +194,7 @@ func newHealthcheckHandler() http.HandlerFunc {
 func newNotFoundHandler(app *App) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		err := errors.NewNotFoundError(
-			"resource not found",
-			fmt.Sprintf("path %s not found", r.URL.Path),
-		)
+		err := errors.NewNotFoundError("resource not found", nil)
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(err.StatusCode)
 		b, _ := json.Marshal(err)
@@ -209,10 +208,7 @@ func newNotFoundHandler(app *App) http.HandlerFunc {
 func newMethodNotAllowedHandler(app *App) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		err := errors.NewMethodNotAllowedError(
-			"method not allowed",
-			fmt.Sprintf("method %s not allowed", r.Method),
-		)
+		err := errors.NewMethodNotAllowedError("method not allowed", nil)
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(err.StatusCode)
 		b, _ := json.Marshal(err)

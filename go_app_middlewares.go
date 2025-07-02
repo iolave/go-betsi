@@ -15,12 +15,9 @@ type mdwHandler func(http.Handler) http.Handler
 // errors can be parsed and handled.
 func newXPoweredByMdw() mdwHandler {
 	return func(next http.Handler) http.Handler {
-
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-
 			w.Header().Set("x-powered-by", "pingolabs.cl")
-			next.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r)
 		}
 
 		return http.HandlerFunc(fn)
