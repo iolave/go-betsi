@@ -111,7 +111,7 @@ func (app *App) RequestJSON(ctx context.Context, r JSONRequest) error {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		httpErr := new(errors.HTTP)
+		httpErr := new(errors.HTTPError)
 		if err := json.Unmarshal(b, httpErr); err != nil {
 			return errors.NewInternalServerError("failed to unmarshal error response", err.Error())
 		}

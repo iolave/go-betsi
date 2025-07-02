@@ -1,71 +1,115 @@
 package errors
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+
+	anyutils "github.com/pingolabscl/go-app/internal/any_utils"
 )
 
-type HTTP struct {
-	Status  int    `json:"status"`
-	Name    string `json:"name"`
-	Message string `json:"message"`
-	Cause   string `json:"cause"`
+type HTTPError struct {
+	StatusCode int    `json:"statusCode"`
+	Name       string `json:"name"`
+	Message    string `json:"message"`
+	Handled    bool   `json:"handled"`
+	Err        any    `json:"error"`
 }
 
-func (err *HTTP) Error() string {
-	return fmt.Sprintf("[%d] %s - %s: %s", err.Status, err.Name, err.Message, err.Cause)
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Name, e.Message)
 }
 
-func NewBadRequestError(msg, cause string) *HTTP {
-	return &HTTP{
-		Status:  http.StatusBadRequest,
-		Name:    "bad_request_error",
-		Message: msg,
-		Cause:   cause,
+// NewHTTPError creates a new HTTPError.
+//
+// If the error is a built-in error, it will be wrapped
+// using this package's Wrap function.
+func NewHTTPError(statusCode int, name, message string, err any) *HTTPError {
+	if err != nil {
+		_, ok := err.(error)
+		if ok {
+			b, marshalErr := json.Marshal(err)
+			if marshalErr == nil && string(b) == "{}" {
+				err = Wrap(err.(error))
+			}
+		}
+	}
+
+	return &HTTPError{
+		StatusCode: statusCode,
+		Name:       name,
+		Message:    message,
+		Handled:    true,
+		Err:        err,
 	}
 }
 
-func NewUnauthorizedError(msg, cause string) *HTTP {
-	return &HTTP{
-		Status:  http.StatusUnauthorized,
-		Name:    "unauthorized_error",
-		Message: msg,
-		Cause:   cause,
+// JSON returns the JSON representation of the error.
+//
+// If the Err property is not marshalable, it will
+// be omitted from the output.
+func (e HTTPError) JSON() string {
+	e = anyutils.DestroyCircular(e).(HTTPError)
+	b, err := json.Marshal(e)
+	if err != nil {
+		e.Err = nil
 	}
+
+	b, _ = json.Marshal(e)
+	return string(b)
 }
 
-func NewNotFoundError(msg, cause string) *HTTP {
-	return &HTTP{
-		Status:  http.StatusNotFound,
-		Name:    "not_found_error",
-		Message: msg,
-		Cause:   cause,
-	}
+// NewBadRequestError creates a new HTTPError with a 400 status code.
+func NewBadRequestError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusBadRequest, "bad_request_error", message, err)
 }
 
-func NewMethodNotAllowedError(msg, cause string) *HTTP {
-	return &HTTP{
-		Status:  http.StatusMethodNotAllowed,
-		Name:    "method_not_allowed_error",
-		Message: msg,
-		Cause:   cause,
-	}
+// NewNotFoundError creates a new HTTPError with a 404 status code.
+func NewNotFoundError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusNotFound, "not_found_error", message, err)
 }
 
-func NewTimeoutError(msg, cause string) *HTTP {
-	return &HTTP{
-		Status:  http.StatusGatewayTimeout,
-		Name:    "gateway_timeout_error",
-		Message: msg,
-		Cause:   cause,
-	}
+// NewInternalServerError creates a new HTTPError with a 500 status code.
+func NewInternalServerError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusInternalServerError, "internal_server_error", message, err)
 }
 
-func NewInternalServerError(msg, cause string) *HTTP {
-	return &HTTP{
-		Status:  http.StatusInternalServerError,
-		Name:    "internal_server_error",
-		Message: msg,
-		Cause:   cause,
-	}
+// NewUnauthorizedError creates a new HTTPError with a 401 status code.
+func NewUnauthorizedError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusUnauthorized, "unauthorized_error", message, err)
+}
+
+// NewForbiddenError creates a new HTTPError with a 403 status code.
+func NewForbiddenError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusForbidden, "forbidden_error", message, err)
+}
+
+// NewConflictError creates a new HTTPError with a 409 status code.
+func NewConflictError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusConflict, "conflict_error", message, err)
+}
+
+// NewTooManyRequestsError creates a new HTTPError with a 429 status code.
+func NewTooManyRequestsError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusTooManyRequests, "too_many_requests_error", message, err)
+}
+
+// NewBadGatewayError creates a new HTTPError with a 502 status code.
+func NewBadGatewayError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusBadGateway, "bad_gateway_error", message, err)
+}
+
+// NewServiceUnavailableError creates a new HTTPError with a 503 status code.
+func NewServiceUnavailableError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusServiceUnavailable, "service_unavailable_error", message, err)
+}
+
+// NewGatewayTimeoutError creates a new HTTPError with a 504 status code.
+func NewGatewayTimeoutError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusGatewayTimeout, "gateway_timeout_error", message, err)
+}
+
+// NewHTTPError creates a new HTTPError.
+func NewMethodNotAllowedError(message string, err any) *HTTPError {
+	return NewHTTPError(http.StatusMethodNotAllowed, "method_not_allowed_error", message, err)
 }

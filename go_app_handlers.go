@@ -74,8 +74,8 @@ func (ar *AppRequest) ReadJSONBody(v any) error {
 }
 
 // SendError sends an error response, following the
-// errors.HTTP structure.
-//   - If the error is not of type *errors.HTTP, an internal server
+// errors.HTTPError structure.
+//   - If the error is not of type *errors.HTTPError, an internal server
 //     error will be sent instead.
 func (ar *AppRequest) SendError(err error) {
 	ctx := ar.Context()
@@ -83,13 +83,13 @@ func (ar *AppRequest) SendError(err error) {
 		err = errors.NewInternalServerError("missing error", "unknown cause")
 	}
 
-	if reflect.TypeFor[*errors.HTTP]() != reflect.TypeOf(err) {
+	if reflect.TypeFor[*errors.HTTPError]() != reflect.TypeOf(err) {
 		err = errors.NewInternalServerError("internal error", err.Error())
 	}
 
 	ar.writer.Header().Set("content-type", "application/json")
-	ar.writer.WriteHeader(err.(*errors.HTTP).Status)
-	b, _ := json.Marshal(err.(*errors.HTTP))
+	ar.writer.WriteHeader(err.(*errors.HTTPError).StatusCode)
+	b, _ := json.Marshal(err.(*errors.HTTPError))
 	ar.writer.Write(b)
 	ar.app.Logger.ErrorWithData(ctx, "handler_failed", err, map[string]any{
 		"path": ar.Request.URL.Path,
@@ -192,7 +192,7 @@ func newNotFoundHandler(app *App) http.HandlerFunc {
 			fmt.Sprintf("path %s not found", r.URL.Path),
 		)
 		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(err.Status)
+		w.WriteHeader(err.StatusCode)
 		b, _ := json.Marshal(err)
 		w.Write(b)
 		app.Logger.ErrorWithData(ctx, "resource_not_found", err, map[string]any{
@@ -209,7 +209,7 @@ func newMethodNotAllowedHandler(app *App) http.HandlerFunc {
 			fmt.Sprintf("method %s not allowed", r.Method),
 		)
 		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(err.Status)
+		w.WriteHeader(err.StatusCode)
 		b, _ := json.Marshal(err)
 		w.Write(b)
 		app.Logger.ErrorWithData(ctx, "method_not_allowed", err, map[string]any{

@@ -7,6 +7,7 @@ require (
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/vault-client-go v0.4.3
+	github.com/theothertomelliott/acyclic v0.0.1
 	golang.org/x/mod v0.17.0
 )
 
