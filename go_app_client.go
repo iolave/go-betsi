@@ -90,7 +90,7 @@ func (app *App) RequestJSON(ctx context.Context, r JSONRequest) *errors.HTTPErro
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Request-ID", tr.RequestID)
+	tr.SetHTTPHeaders(req.Header)
 
 	for k, v := range r.Headers {
 		req.Header.Set(k, v)

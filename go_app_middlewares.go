@@ -24,21 +24,27 @@ func newXPoweredByMdw() mdwHandler {
 	}
 }
 
-func newRequestIdMdw() mdwHandler {
+// newTraceMdw returns a chi middleware that checks
+// if the request has trace headers and adds them
+// to the context.
+//
+// If the request doesn't have trace headers, it
+// will populate the context with a new trace.
+func newTraceMdw() mdwHandler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 
-			requestId := r.Header.Get("x-request-id")
-			if requestId == "" {
-				requestId = uuid.New().String()
+			tr := trace.NewFromHTTPHeaders(r.Header)
+
+			// Check/set request id
+			if tr.RequestID == "" {
+				tr.RequestID = uuid.New().String()
 			}
+			tr.SetHTTPHeaders(w.Header())
 
-			ctx = trace.SetContext(ctx, trace.Trace{
-				RequestID: requestId,
-			})
+			ctx = trace.SetContext(ctx, tr)
 
-			w.Header().Set("x-request-id", requestId)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 

@@ -87,7 +87,7 @@ func New(cfg Config) (*App, *errors.Error) {
 	}
 
 	app.mux.Use(newAppContextMdw(app))
-	app.mux.Use(newRequestIdMdw())
+	app.mux.Use(newTraceMdw())
 	app.mux.Use(newXPoweredByMdw())
 	app.mux.Get("/healthcheck", newHealthcheckHandler())
 	app.mux.Get("/healthcheck/", newHealthcheckHandler())
