@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"reflect"
+	"slices"
 	"time"
 
 	"github.com/pingolabscl/go-app/pkg/errors"
@@ -28,15 +29,19 @@ func (ar *AppRequest) Context() context.Context {
 }
 
 // ReadJSONBody unmarshals a request json body into v.
-// It also does struct validation using go-playground/validator
+// It also validates v using go-playground/validator
 // rules.
 func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
 	b, err := io.ReadAll(ar.Request.Body)
 	if err != nil {
-		return errors.NewInternalServerError("failed to read request body", errors.Wrap(err))
+		return errors.NewInternalServerError(
+			"failed to read request body",
+			errors.Wrap(err),
+		)
 	}
+
 	if err := json.Unmarshal(b, v); err != nil {
-		return errors.NewBadRequestError("invalid json content", errors.Wrap(err))
+		return errors.NewBadRequestError("request body is not valid json", errors.Wrap(err))
 	}
 
 	valueOf := reflect.ValueOf(v)
@@ -48,25 +53,11 @@ func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
 		valueToValidate = v
 	}
 
-	if reflect.TypeOf(valueToValidate).Kind() == reflect.Slice {
-		valueOf := reflect.ValueOf(valueToValidate)
-		length := valueOf.Len()
-		for i := 0; i < length; i++ {
-			valueToValidate := valueOf.Index(i).Interface()
-			if err := ar.App.validator.Struct(valueToValidate); err != nil {
-				return errors.NewInternalServerError(
-					"unable to send response, response didn't passed validation",
-					errors.Wrap(err),
-				)
-			}
-		}
-	} else {
-		if err := ar.App.validator.Struct(valueToValidate); err != nil {
-			return errors.NewInternalServerError(
-				"unable to send response, response didn't passed validation",
-				errors.Wrap(err),
-			)
-		}
+	if err := ar.App.recursiveValidation(valueToValidate); err != nil {
+		return errors.NewInternalServerError(
+			"client response doesn't meet validation rules",
+			err,
+		)
 	}
 
 	return nil
@@ -102,51 +93,44 @@ func (ar *AppRequest) SendError(err error) {
 }
 
 // SendJSON sends an OK http response with json content. Make
-// sure the result param is a struct.
+// sure the result param either a struct, slice, or map. Otherwise,
+// an internal server error will be sent.
 //
 //   - If go-playground/validator validation requirements are
 //     not met, an internal server error will be sent instead.
 //
 //   - if the result param failed to be marshaled, an internal
 //     server error will be sent instead.
-//
-//   - If the result param is a map, go-playground/validator
-//     validation requirements are not met, and therefore an
-//     internal server error will be sent instead.
-func (ar *AppRequest) SendJSON(result any) {
+func (ar *AppRequest) SendJSON(v any) {
 	ctx := ar.Context()
 
-	if reflect.TypeOf(result).Kind() == reflect.Slice {
-		valueOf := reflect.ValueOf(result)
-		length := valueOf.Len()
-		for i := 0; i < length; i++ {
-			v := valueOf.Index(i).Interface()
+	allowedKinds := []reflect.Kind{
+		reflect.Slice,
+		reflect.Map,
+		reflect.Struct,
+	}
+	if kind := reflect.TypeOf(v).Kind(); !slices.Contains(allowedKinds, kind) {
+		ar.SendError(errors.NewInternalServerError(
+			"unable to send response, response is not a struct, slice or map",
+			nil,
+		))
 
-			if err := ar.App.validator.Struct(v); err != nil {
-				ar.SendError(errors.NewInternalServerError(
-					"unable to send response, response didn't passed validation",
-					errors.Wrap(err),
-				))
-
-				return
-			}
-		}
-
-	} else {
-		if err := ar.App.validator.Struct(result); err != nil {
-			ar.SendError(errors.NewInternalServerError(
-				"unable to send response, response didn't passed validation",
-				errors.Wrap(err),
-			))
-
-			return
-		}
+		return
 	}
 
-	b, err := json.Marshal(result)
+	if err := ar.App.recursiveValidation(v); err != nil {
+		ar.SendError(errors.NewInternalServerError(
+			"unable to send response, response doesn't meet validation rules",
+			err,
+		))
+
+		return
+	}
+
+	b, err := json.Marshal(v)
 	if err != nil {
 		ar.SendError(errors.NewInternalServerError(
-			"failed to serialize result",
+			"failed to serialize response",
 			errors.Wrap(err),
 		))
 
