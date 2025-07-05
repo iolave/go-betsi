@@ -54,16 +54,44 @@ type JSONRequest struct {
 	Headers    map[string]string `json:"headers"`
 	// TODO: Add query params support
 	// Query      map[string]string `json:"query"`
-	Result any `json:"-"`
 }
 
-// RequestJSON sends a request to the specified client and returns the response, it only supports JSON requests at the moment.
+// RequestJSON sends an http request to a goapp client
+// and returns a json response.
+//
+// It currently supports sending json requests.
 // TODO: Add support for streaming requests.
-func (app *App) RequestJSON(ctx context.Context, r JSONRequest) *errors.HTTPError {
+//
+// It retrieves the goapp from the passed context and
+// uses the client name to retrieve the client from the
+// goapp clients map. If the client is not found, it
+// returns an error.
+//
+// If the context does not contain a goapp, it returns
+// an internal server error and might indicate the context
+// is not set correctly.
+func RequestJSON[Response any](ctx context.Context, r JSONRequest) (Response, *errors.HTTPError) {
+	// gets the trace from the context and sets the request id
+	// if it's empty to trace following requests.
+	tr := trace.GetFromContext(ctx)
+	if tr.RequestID == "" {
+		tr.RequestID = uuid.NewString()
+	}
+	ctx = trace.SetContext(ctx, tr)
+
+	result := new(Response)
+
+	app, err := GetFromContext(ctx)
+	if err != nil {
+		return *result, errors.NewInternalServerError("unable to send request", err)
+	}
+
 	client, ok := app.clients[r.ClientName]
 	if !ok {
-		return errors.NewInternalServerError("unable to send request", "client not found")
-
+		return *result, errors.NewInternalServerError(
+			"unable to send request, client not found",
+			nil,
+		)
 	}
 
 	var url string
@@ -73,20 +101,20 @@ func (app *App) RequestJSON(ctx context.Context, r JSONRequest) *errors.HTTPErro
 		url = fmt.Sprintf("http://%s:%d%s", client.Host, client.Port, r.Path)
 	}
 
-	b, err := json.Marshal(r.Body)
-	if err != nil {
-		return errors.NewBadRequestError("unable to send request", "failed to marshal body")
+	b, error := json.Marshal(r.Body)
+	if error != nil {
+		return *result, errors.NewInternalServerError(
+			"unable to send request, failed to marshal body",
+			errors.Wrap(error),
+		)
 	}
 
-	tr := trace.GetFromContext(ctx)
-	if tr.RequestID == "" {
-		tr.RequestID = uuid.NewString()
-	}
-	ctx = trace.SetContext(ctx, tr)
-
-	req, err := http.NewRequestWithContext(ctx, r.Method, url, bytes.NewReader(b))
-	if err != nil {
-		return errors.NewInternalServerError("unable to send request", "failed to create request")
+	req, error := http.NewRequestWithContext(ctx, r.Method, url, bytes.NewReader(b))
+	if error != nil {
+		return *result, errors.NewInternalServerError(
+			"unable to send request, failed to create request",
+			errors.Wrap(error),
+		)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -96,31 +124,47 @@ func (app *App) RequestJSON(ctx context.Context, r JSONRequest) *errors.HTTPErro
 		req.Header.Set(k, v)
 	}
 
-	res, err := app.httpClient.Do(req)
-	if err != nil {
-		return errors.NewInternalServerError("failed to send request", err.Error())
+	res, error := app.httpClient.Do(req)
+	if error != nil {
+		return *result, errors.NewInternalServerError(
+			"unable to send request",
+			errors.Wrap(error),
+		)
 	}
 
 	if res.Header.Get("X-Powered-By") != "pingolabs.cl" {
-		return errors.NewInternalServerError("failed to read response", "client is not a pingolabs service")
+		return *result, errors.NewInternalServerError(
+			"unable to process response, client is not a pingolabs service",
+			nil,
+		)
 	}
 
-	b, err = io.ReadAll(res.Body)
-	if err != nil {
-		return errors.NewInternalServerError("failed to read response body", err.Error())
+	b, error = io.ReadAll(res.Body)
+	if error != nil {
+		return *result, errors.NewInternalServerError(
+			"failed to read response body",
+			errors.Wrap(error),
+		)
 	}
 
 	if res.StatusCode != http.StatusOK {
 		httpErr := new(errors.HTTPError)
 		if err := json.Unmarshal(b, httpErr); err != nil {
-			return errors.NewInternalServerError("failed to unmarshal error response", err.Error())
+			return *result, errors.NewInternalServerError(
+				"failed to unmarshal error response",
+				errors.Wrap(err),
+			)
 		}
-		return httpErr
+
+		return *result, httpErr
 	}
 
-	if err := json.Unmarshal(b, r.Result); err != nil {
-		return errors.NewInternalServerError("failed to unmarshal response", errors.Wrap(err))
+	if err := json.Unmarshal(b, result); err != nil {
+		return *result, errors.NewInternalServerError(
+			"failed to unmarshal response",
+			errors.Wrap(err),
+		)
 	}
 
-	return nil
+	return *result, nil
 }
