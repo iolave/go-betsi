@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/pingolabscl/go-app/pkg/errors"
 	"github.com/pingolabscl/go-app/pkg/trace"
 )
 
@@ -62,4 +63,33 @@ func newAppContextMdw(app *App) mdwHandler {
 
 		return http.HandlerFunc(fn)
 	}
+}
+
+func NewAcceptVersionHandler(dflt Handler, handlers map[string]Handler) Handler {
+	return func(ar AppRequest) {
+		var handler Handler
+
+		acceptVersion := ar.Request.Header.Get("Accept-Version")
+		if acceptVersion != "" {
+			foundHandler, ok := handlers[acceptVersion]
+			if !ok {
+				ar.SendError(errors.NewBadRequestError("invalid accept version header", nil))
+				return
+			}
+			handler = foundHandler
+		} else {
+			handler = dflt
+		}
+
+		if handler == nil {
+			ar.SendError(errors.NewInternalServerError(
+				"handler not implemented",
+				nil,
+			))
+			return
+		}
+
+		handler(ar)
+	}
+
 }
