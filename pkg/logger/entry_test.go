@@ -72,7 +72,7 @@ func Test_newEntry_serialize(t *testing.T) {
 			e.LevelStr,
 			e.Name,
 			e.Version,
-			errors.Wrap(err).JSON(),
+			errors.Wrap(err).(*errors.Error).JSON(),
 			e.Msg,
 		)
 		got := e.serialize()

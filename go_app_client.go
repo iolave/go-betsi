@@ -67,10 +67,12 @@ type JSONRequest struct {
 // goapp clients map. If the client is not found, it
 // returns an error.
 //
+// error is of type *errors.HTTPError.
+//
 // If the context does not contain a goapp, it returns
 // an internal server error and might indicate the context
 // is not set correctly.
-func RequestJSON[Response any](ctx context.Context, r JSONRequest) (Response, *errors.HTTPError) {
+func RequestJSON[Response any](ctx context.Context, r JSONRequest) (Response, error) {
 	// gets the trace from the context and sets the request id
 	// if it's empty to trace following requests.
 	tr := trace.GetFromContext(ctx)

@@ -92,7 +92,9 @@ func (app *App) renewVaultToken() {
 //
 // If it fails to retrieve the secret from vault or parse the json
 // string it will return an error.
-func (app *App) GetSecret(envKey string) (map[string]any, *errors.Error) {
+//
+// error is of type *errors.Error.
+func (app *App) GetSecret(envKey string) (map[string]any, error) {
 	env := os.Getenv(envKey)
 	if env == "" {
 		return nil, errors.NewWithName(

@@ -65,7 +65,7 @@ func TestHTTPError(t *testing.T) {
 		builtinErr := fmt.Errorf("error")
 		err := NewHTTPError(404, "not_found_error", "not found", builtinErr)
 		want := `{"statusCode":404,"name":"not_found_error","message":"not found","handled":true,"error":{"name":"error","message":"error","original":{}}}`
-		if got := err.JSON(); got != want {
+		if got := err.(*HTTPError).JSON(); got != want {
 			t.Errorf("got %v, want %v", got, want)
 		}
 	})

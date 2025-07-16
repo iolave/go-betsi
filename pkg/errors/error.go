@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+type JSONError interface {
+	error
+	JSON() string
+}
+
 // Error is an error struct that can be serialized to json.
 // It contains an OriginalError property that can be used to
 // wrap an error.
@@ -14,9 +19,11 @@ type Error struct {
 	Original error  `json:"original"`
 }
 
+var _ JSONError = Error{}
+
 // Error returns Original.Error() if Original is not nil and
 // the concatenation of the Name and Message properties otherwise.
-func (e *Error) Error() string {
+func (e Error) Error() string {
 	if e.Original != nil {
 		return e.Original.Error()
 	}
@@ -59,7 +66,7 @@ func New(message string) *Error {
 }
 
 // NewWithName creates a new Error.
-func NewWithName(name string, message string) *Error {
+func NewWithName(name string, message string) error {
 	return &Error{
 		Name:    name,
 		Message: message,
@@ -67,7 +74,7 @@ func NewWithName(name string, message string) *Error {
 }
 
 // NewWithNameAndErr creates a new Error with the given name and error.
-func NewWithNameAndErr(name string, message string, err error) *Error {
+func NewWithNameAndErr(name string, message string, err error) error {
 	return &Error{
 		Name:     name,
 		Message:  message,
@@ -78,7 +85,7 @@ func NewWithNameAndErr(name string, message string, err error) *Error {
 // Wrap wraps an error with a new Error. If
 // the error is of type *Error, it returns the
 // original error.
-func Wrap(err error) *Error {
+func Wrap(err error) error {
 	if err == nil {
 		return nil
 	}

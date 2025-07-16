@@ -9,7 +9,9 @@ import (
 // recursiveValidation validates any type recursively
 // using the go-playground/validator rules. It returns
 // an error if the validation fails.
-func (app *App) recursiveValidation(v any) *errors.Error {
+//
+// error is of type *errors.Error.
+func (app *App) recursiveValidation(v any) error {
 	switch kind := reflect.TypeOf(v).Kind(); kind {
 	case reflect.Slice:
 		valueOf := reflect.ValueOf(v)

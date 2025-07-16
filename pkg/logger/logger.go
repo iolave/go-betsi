@@ -38,7 +38,11 @@ type Logger struct {
 // version, then it is set to the first 7 characters of the
 // version. If version is an empty string, then it is set
 // to develop.
-func New(cfg Config) (*Logger, *errors.Error) {
+//
+// If the level is not valid, then an error is returned.
+//
+// The error returned is of type *errors.Error.
+func New(cfg Config) (*Logger, error) {
 	if !cfg.Level.IsValid() {
 		return nil, errors.NewWithName(error_name_logger, error_msg_invalid_level)
 	}

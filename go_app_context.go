@@ -17,7 +17,9 @@ const (
 // GetFromContext returns the app from a context. If the
 // context does not contain an app, or the type of the
 // app is not *goapp.App, then an error is returned.
-func GetFromContext(ctx context.Context) (*App, *errors.Error) {
+//
+// error is of type *errors.Error.
+func GetFromContext(ctx context.Context) (*App, error) {
 	app := ctx.Value(ctx_app_key)
 	if app == nil {
 		return nil, errors.NewWithName(app_err_name, app_err_msg_app_not_found)

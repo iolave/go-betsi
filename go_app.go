@@ -35,7 +35,9 @@ type Config struct {
 	Vault              VaultConfig
 }
 
-func New(cfg Config) (*App, *errors.Error) {
+// New creates a new App. It returns an error
+// of type *errors.Error if the app cannot be created.
+func New(cfg Config) (*App, error) {
 	ctx := context.Background()
 
 	vaultConfig := determineVaultConfig(cfg.Vault)

@@ -57,8 +57,9 @@ func (l Level) IsValid() bool {
 }
 
 // NewLevelFromString returns a level from a string.
-// If the string is not a valid level, an error is returned.
-func NewLevelFromString(s string) (Level, *errors.Error) {
+// If the string is not a valid level, an error of type
+// *errors.Error is returned.
+func NewLevelFromString(s string) (Level, error) {
 	switch s {
 	case "trace":
 		return LEVEL_TRACE, nil

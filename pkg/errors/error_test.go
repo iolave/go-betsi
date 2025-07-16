@@ -83,7 +83,7 @@ func TestError(t *testing.T) {
 		someErr := &AnyError{
 			Fn: func() {},
 		}
-		got := Wrap(someErr).JSON()
+		got := Wrap(someErr).(*Error).JSON()
 		if got != want {
 			t.Errorf("JSON() = %v, want %v", got, want)
 		}

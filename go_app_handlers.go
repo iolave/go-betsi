@@ -31,7 +31,9 @@ func (ar *AppRequest) Context() context.Context {
 // ReadJSONBody unmarshals a request json body into v.
 // It also validates v using go-playground/validator
 // rules.
-func (ar *AppRequest) ReadJSONBody(v any) *errors.HTTPError {
+//
+// error is of type *errors.HTTPError.
+func (ar *AppRequest) ReadJSONBody(v any) error {
 	b, err := io.ReadAll(ar.Request.Body)
 	if err != nil {
 		return errors.NewInternalServerError(
@@ -73,19 +75,16 @@ func (ar *AppRequest) SendError(err error) {
 		err = errors.NewInternalServerError("nil error sent", nil)
 	}
 
-	var error *errors.HTTPError
-	switch err := err.(type) {
-	case *errors.HTTPError:
-		error = err
+	switch err.(type) {
 	case *errors.Error:
-		error = errors.NewInternalServerError("internal error", err)
+		err = errors.NewInternalServerError("internal error", err)
 	default:
-		error = errors.NewInternalServerError("internal error", errors.Wrap(err))
+		err = errors.NewInternalServerError("internal error", errors.Wrap(err))
 	}
 
 	ar.writer.Header().Set("content-type", "application/json")
-	ar.writer.WriteHeader(error.StatusCode)
-	b, _ := json.Marshal(error)
+	ar.writer.WriteHeader(err.(*errors.HTTPError).StatusCode)
+	b, _ := json.Marshal(err)
 	ar.writer.Write(b)
 	ar.App.Logger.ErrorWithData(ctx, "handler_failed", err, map[string]any{
 		"path": ar.Request.URL.Path,
@@ -179,7 +178,7 @@ func newNotFoundHandler(app *App) http.HandlerFunc {
 		ctx := r.Context()
 		err := errors.NewNotFoundError("resource not found", nil)
 		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(err.StatusCode)
+		w.WriteHeader(err.(*errors.HTTPError).StatusCode)
 		b, _ := json.Marshal(err)
 		w.Write(b)
 		app.Logger.ErrorWithData(ctx, "resource_not_found", err, map[string]any{
@@ -193,7 +192,7 @@ func newMethodNotAllowedHandler(app *App) http.HandlerFunc {
 		ctx := r.Context()
 		err := errors.NewMethodNotAllowedError("method not allowed", nil)
 		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(err.StatusCode)
+		w.WriteHeader(err.(*errors.HTTPError).StatusCode)
 		b, _ := json.Marshal(err)
 		w.Write(b)
 		app.Logger.ErrorWithData(ctx, "method_not_allowed", err, map[string]any{
