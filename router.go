@@ -55,6 +55,17 @@ func (r Router) Use(mdw func(next http.Handler) http.Handler) {
 	r.mux.Use(mdw)
 }
 
+// NotFoundHandler sets the handler to be called when a route is not found.
+func (r Router) NotFoundHandler(h http.Handler) {
+	r.mux.NotFound(h.(http.HandlerFunc))
+}
+
+// MethodNotAllowedHandler sets the handler to be called when a request
+// comes with an invalid method.
+func (r Router) MethodNotAllowedHandler(h http.Handler) {
+	r.mux.MethodNotAllowed(h.(http.HandlerFunc))
+}
+
 // buildPatterns builds the patterns for the router by generating
 // a `/` sufixed and non-sufixed pattern.
 //
