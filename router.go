@@ -212,8 +212,28 @@ func NewHandler[In, Out any](h Handler[In, Out]) Handler[any, any] {
 // and headers. It is also used to send a response
 // back to the client.
 //
-// It contains various useful methods to be used
-// inside a handler function.
+// It uses an In type parameter to specify the type
+// of the request body. In has to be a struct with
+// "ar" tags:
+//
+//   - path={VALUE}: path param key within the url.
+//   - body={oneof json}: property that contains the body type (json or xml).
+//
+// In example:
+//
+//	type PatchUserRequest struct {
+//		Name string `ar:"path=name"`
+//		Body struct{
+//			Age int `json:"age"`
+//			// ...
+//		} `ar:"body=json"`
+//	}
+//
+// In the other hand, Out is the type of the response
+// body. It can be any type and it's tags depends on
+// the content type of the response you want to send.
+// For example, if the response is of type json, you
+// use the json tags and the SendJSON method.
 type AppRequest[In, Out any] struct {
 	Req *http.Request
 	w   http.ResponseWriter
