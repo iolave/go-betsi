@@ -149,7 +149,10 @@ func decodeAppRequest(r *http.Request, v any) error {
 
 					err = json.Unmarshal(b, in)
 					if err != nil {
-						return errors.Wrap(err)
+						return errors.NewBadRequestError(
+							ERR_ENCDEC_PARSE,
+							err,
+						)
 					}
 
 					f.Set(reflect.ValueOf(in).Elem())

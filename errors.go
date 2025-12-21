@@ -27,6 +27,7 @@ const (
 	ERR_ENCDEC_PATH_INVALID    = "path tag can only be used with string (name:%s)"
 	ERR_ENCDEC_TAG_VAL_INVALID = "%s tag value %s not supported (name:%s)"
 	ERR_ENCDEC_INVALID_TAG     = "tag %s is not supported (name:%s)"
+	ERR_ENCDEC_PARSE           = "failed to parse request body"
 	ERR_ENC_DEC_EXPECT_PTR     = "v has to be a pointer to a struct, got %s"
 )
 
