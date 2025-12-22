@@ -184,6 +184,12 @@ func createUserHandler(ar betsi.AppRequest[CreateUserRequest, CreateUserResponse
         Email: req.Body.Email,
     })
 }
+
+// Using it in the Router
+func main() {
+	r := betsi.NewRouter()
+	r.Get("/users", betsi.NewHandler(getUsersHandler))
+}
 ```
 
 ## Error Handling

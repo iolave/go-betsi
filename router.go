@@ -189,9 +189,15 @@ func (h Handler[In, Out]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// NewHandler returns a new generic handler with it's
-// input and output types set to any and any respectively
-// from a type-safe handler.
+// NewHandler wraps a type-safe Handler[In, Out] into a generic Handler[any, any].
+//
+// This function is useful for adapting specific, strongly-typed handlers to contexts
+// where the router expects a more general handler signature (e.g., when registering
+// routes where the exact input/output types are not yet known or are managed
+// internally by the AppRequest's mechanisms).
+//
+// The returned handler internally converts the generic AppRequest[any, any] back
+// into the original AppRequest[In, Out] before invoking the provided type-safe handler `h`.
 func NewHandler[In, Out any](h Handler[In, Out]) Handler[any, any] {
 	nh := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ar := AppRequest[In, Out]{
@@ -206,43 +212,58 @@ func NewHandler[In, Out any](h Handler[In, Out]) Handler[any, any] {
 	}
 }
 
-// AppRequest is the type of the request that is
-// passed to the handler function and is used to
-// retrieve request data, such as the request body
-// and headers. It is also used to send a response
-// back to the client.
+// AppRequest is a generic wrapper around the standard http.Request and
+// http.ResponseWriter. It provides type-safe methods for parsing incoming
+// requests and sending outgoing responses.
 //
-// It uses an In type parameter to specify the type
-// of the request body. In has to be a struct with
-// "ar" tags:
+// The type parameters `In` and `Out` define the expected request and response
+// body types, respectively.
 //
-//   - path={VALUE}: path param key within the url.
-//   - body={oneof json}: property that contains the body type (json or xml).
+// # Request Parsing (In)
 //
-// In example:
+// The `In` type parameter specifies the shape of the data to be parsed from an
+// incoming request, typically by the ParseRequest method. It must be a struct
+// that uses `ar` tags to map request data:
 //
-//	type PatchUserRequest struct {
-//		Name string `ar:"path=name"`
-//		Body struct{
-//			Age int `json:"age"`
-//			// ...
+//   - `ar:"path={name}"`: Maps a URL path parameter to a string field.
+//     For example, in `/users/{id}`, a field with `ar:"path=id"` would be populated
+//     with the value of {id}.
+//   - `ar:"body=json"`: Designates a struct field as the target for the
+//     deserialized JSON request body.
+//
+// Example of an `In` type:
+//
+//	type CreateUserRequest struct {
+//		ID    string `ar:"path=id"`
+//		// The user's details, deserialized from the JSON body.
+//		Body struct {
+//			Name  string `json:"name"`
+//			Email string `json:"email"`
 //		} `ar:"body=json"`
 //	}
 //
-// In the other hand, Out is the type of the response
-// body. It can be any type and it's tags depends on
-// the content type of the response you want to send.
-// For example, if the response is of type json, you
-// use the json tags and the SendJSON method.
+// # Response Sending (Out)
+//
+// The `Out` type parameter defines the data structure that will be sent as a
+// response body, typically using the SendJSON method. This can be any
+// serializable type. For JSON responses, standard `json` tags are used.
+//
+// Example of an `Out` type:
+//
+//	type UserResponse struct {
+//		ID        string    `json:"id"`
+//		Name      string    `json:"name"`
+//		CreatedAt time.Time `json:"createdAt"`
+//	}
 type AppRequest[In, Out any] struct {
 	Req *http.Request
 	w   http.ResponseWriter
 }
 
-// Context returns the context of the request.
-// It is a shortcut for ar.Req.Context().
+// Context returns the request's context, serving as a shortcut for `ar.Req.Context()`.
 //
-// If the request is nil, a new context will be created.
+// As a safeguard, if the underlying request (`ar.Req`) is nil, it returns a
+// non-nil, empty context via `context.Background()` to prevent panics.
 func (ar AppRequest[_, _]) Context() context.Context {
 	if ar.Req == nil {
 		return context.Background()
@@ -251,10 +272,19 @@ func (ar AppRequest[_, _]) Context() context.Context {
 	return ar.Req.Context()
 }
 
-// SendJSONError sends a json error response to the client. The error
-// will be of type *errors.HTTPError. If the error is nil or it
-// is not of type *errors.HTTPError an internal server error will
-// be sent to the client.
+// SendJSONError sends a structured JSON error response to the client.
+//
+// It intelligently handles the provided error:
+//   - If `err` is of type [github.com/iolave/go-errors.HTTPError], it
+//     uses its status code and
+//     JSON body directly for the response.
+//   - If `err` is nil, it generates a new internal server error.
+//   - For any other error type, it wraps the original error in a new
+//     internal server error.
+//
+// The context `ctx` is used to retrieve trace information, which is injected
+// into the response headers for observability. The Content-Type is always
+// set to "application/json".
 func (ar AppRequest[_, _]) SendJSONError(ctx context.Context, err error) {
 	t := trace.GetFromContext(ctx)
 
@@ -280,14 +310,20 @@ func (ar AppRequest[_, _]) SendJSONError(ctx context.Context, err error) {
 	ar.w.Write(httperr.JSON())
 }
 
-// SendJSON sends a 200 json response to the client with type Out.
+// SendJSON marshals the provided data `v` into a JSON response, sets the
+// Content-Type header to "application/json", and writes an http.StatusOK (200)
+// status code.
 //
-//   - If v contains valid go-playground/validator tags, v will be
-//     validated before sending it to the client to ensure the client
-//     receives a proper response. If v failed to be validated, an
-//     internal server error will be sent.
-//   - If v can not be json marshaled, an internal server error will
-//     be sent to the client.
+// The context `ctx` is used to retrieve trace information which is then injected
+// into the response headers for observability.
+//
+// Before sending, it recursively validates the payload `v` using any associated
+// go-playground/validator tags.
+//
+// It handles two primary error scenarios:
+//   - If validation fails, it calls SendJSONError with an internal server error.
+//   - If JSON marshaling fails, it also calls SendJSONError with an internal
+//     server error.
 func (ar AppRequest[_, Out]) SendJSON(ctx context.Context, v Out) {
 	if err := utils.ValidateRecursively(v); err != nil {
 		ar.SendJSONError(ctx, errors.NewInternalServerError(
@@ -314,10 +350,17 @@ func (ar AppRequest[_, Out]) SendJSON(ctx context.Context, v Out) {
 	ar.w.Write(b)
 }
 
-// ParseRequest parses the [http.Request] and returns a new instance of In
-// with it's properties set to the values of the request (path params and body).
+// ParseRequest populates and returns a new instance of the generic type `In` by
+// decoding data from the HTTP request. It uses the `ar` struct tags on the `In`
+// type to map URL path parameters and the request body to the struct's fields.
 //
-// Any error returned by this method will be of type [github.com/iolave/go-errors.GenericError].
+// This method returns an error under the following conditions:
+//   - The generic type `In` is not a struct.
+//   - The underlying http.Request or its body is nil.
+//   - The internal decoding of the request fails (e.g., malformed JSON).
+//
+// On success, it returns a pointer to the populated struct. Any returned error
+// will be of type [github.com/iolave/go-errors.GenericError].
 func (ar AppRequest[In, _]) ParseRequest() (*In, error) {
 	if reflect.TypeFor[In]().Kind() != reflect.Struct {
 		return nil, errors.NewWithName(
