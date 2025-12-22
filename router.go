@@ -251,11 +251,11 @@ func (ar AppRequest[_, _]) Context() context.Context {
 	return ar.Req.Context()
 }
 
-// SendError sends a json error response to the client. The error
+// SendJSONError sends a json error response to the client. The error
 // will be of type *errors.HTTPError. If the error is nil or it
 // is not of type *errors.HTTPError an internal server error will
 // be sent to the client.
-func (ar AppRequest[_, _]) SendError(ctx context.Context, err error) {
+func (ar AppRequest[_, _]) SendJSONError(ctx context.Context, err error) {
 	t := trace.GetFromContext(ctx)
 
 	switch err.(type) {
@@ -290,7 +290,7 @@ func (ar AppRequest[_, _]) SendError(ctx context.Context, err error) {
 //     be sent to the client.
 func (ar AppRequest[_, Out]) SendJSON(ctx context.Context, v Out) {
 	if err := utils.ValidateRecursively(v); err != nil {
-		ar.SendError(ctx, errors.NewInternalServerError(
+		ar.SendJSONError(ctx, errors.NewInternalServerError(
 			ERR_SRV_AR_SEND_JSON_VALIDATION_ERR,
 			err,
 		))
@@ -299,7 +299,7 @@ func (ar AppRequest[_, Out]) SendJSON(ctx context.Context, v Out) {
 
 	b, err := json.Marshal(v)
 	if err != nil {
-		ar.SendError(ctx, errors.NewInternalServerError(
+		ar.SendJSONError(ctx, errors.NewInternalServerError(
 			ERR_SRV_AR_SEND_JSON_MARSHALL_ERR,
 			err,
 		))
