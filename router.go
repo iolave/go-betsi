@@ -55,6 +55,14 @@ func (r Router) Use(mdw func(next http.Handler) http.Handler) {
 	r.mux.Use(mdw)
 }
 
+// With adds inline middleware for an endpoint handler. It uses a
+// standard [http.Hanlder] mdw.
+func (r Router) With(mdw func(next http.Handler) http.Handler) Router {
+	return Router{
+		mux: r.mux.With(mdw).(*chi.Mux),
+	}
+}
+
 // NotFoundHandler sets the handler to be called when a route is not found.
 func (r Router) NotFoundHandler(h http.Handler) {
 	r.mux.NotFound(h.(http.HandlerFunc))
