@@ -23,7 +23,9 @@ func (w ResponseWriter) Header() http.Header {
 }
 func (w *ResponseWriter) Write(b []byte) (int, error) {
 	if w.SentStatus < 200 || w.SentStatus > 299 {
-		err := errors.HTTPError{}
+		err := errors.HTTPError{
+			Err: &anyError{},
+		}
 		json.Unmarshal(b, &err)
 		w.SentErr = &err
 	}
