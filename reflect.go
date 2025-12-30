@@ -139,6 +139,12 @@ func decodeAppRequest(r *http.Request, v any) error {
 				}
 				switch typ := splittedTag[1]; typ {
 				case "json":
+					if r.Header.Get("Content-Type") != "application/json" {
+						return errors.NewBadRequestError(
+							"invalid content type",
+							nil,
+						)
+					}
 					b, err := io.ReadAll(r.Body)
 					if err != nil {
 						return errors.Wrap(err)
