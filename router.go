@@ -46,7 +46,7 @@ func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // to split up a large API as many independent
 // routers and compose them as a single service
 // using Route.
-func (r Router) Route(pattern string, router Router) {
+func (r Router) Route(pattern string, router *Router) {
 	r.mux.Mount(pattern, router.mux)
 }
 
