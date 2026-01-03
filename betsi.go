@@ -61,10 +61,6 @@ func New(cfg Config) (*App, error) {
 // before starting the app. The functions will be executed in the order they
 // are passed to the function.
 func (app *App) Start(preExecution ...func()) {
-	for _, f := range preExecution {
-		f()
-	}
-
 	ctx := context.Background()
 	tlsEnabled := false
 
@@ -88,6 +84,10 @@ func (app *App) Start(preExecution ...func()) {
 		"port":       app.cfg.Server.Port,
 		"tlsEnabled": tlsEnabled,
 	})
+
+	for _, f := range preExecution {
+		f()
+	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", app.cfg.Server.Port))
 	if err != nil {
@@ -114,10 +114,6 @@ func (app *App) Start(preExecution ...func()) {
 // before starting the app. The functions will be executed in the order they
 // are passed to the function.
 func (app *App) StartTLS(certFile, keyFile string, preExecution ...func()) {
-	for _, f := range preExecution {
-		f()
-	}
-
 	ctx := context.Background()
 	tlsEnabled := true
 
@@ -141,6 +137,10 @@ func (app *App) StartTLS(certFile, keyFile string, preExecution ...func()) {
 		"port":       app.cfg.Server.Port,
 		"tlsEnabled": tlsEnabled,
 	})
+
+	for _, f := range preExecution {
+		f()
+	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", app.cfg.Server.Port))
 	if err != nil {
